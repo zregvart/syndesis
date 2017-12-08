@@ -84,6 +84,9 @@ public class SqlConnectorComponentTest {
         registry.put("query", "myquery");
 
         CamelContext context = new DefaultCamelContext(registry);
+        
+        CamelProcessor processor = new CamelProcessor();
+        context.addService(processor);
 
         CountDownLatch latch = new CountDownLatch(1);
         final Result result = new Result();

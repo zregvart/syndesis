@@ -16,12 +16,25 @@
  */
 package io.syndesis.connector.sql;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.camel.Endpoint;
+import org.apache.camel.Exchange;
+import org.apache.camel.Expression;
 import org.apache.camel.Processor;
+import org.apache.camel.Producer;
+import org.apache.camel.builder.ExpressionBuilder;
+import org.apache.camel.builder.ValueBuilder;
 import org.apache.camel.component.connector.DefaultConnectorComponent;
+import org.apache.camel.processor.ChoiceProcessor;
+import org.apache.camel.processor.FilterProcessor;
+import org.apache.camel.processor.Pipeline;
+import org.apache.camel.processor.Splitter;
+import org.apache.camel.processor.aggregate.AggregationStrategy;
 
 import io.syndesis.connector.sql.stored.JSONBeanUtil;
 
@@ -43,6 +56,19 @@ public class SqlStartConnectorComponent extends DefaultConnectorComponent {
         super(COMPONENT_NAME, SqlStartConnectorComponent.class.getName());
     }
 
+//    @Override
+//    public Endpoint createEndpoint(String uri) throws Exception {
+//        // TODO Auto-generated method stub
+//        Endpoint endpoint = super.createEndpoint(uri);
+//        Producer producer = endpoint.createProducer();
+//        
+//        
+//        
+//        return endpoint;
+//    }
+    
+    
+    
     @Override
     public Processor getBeforeProducer() {
 
@@ -59,16 +85,38 @@ public class SqlStartConnectorComponent extends DefaultConnectorComponent {
     @Override
     public Processor getAfterProducer() {
         @SuppressWarnings("unchecked")
+        List<String> jsonList = new ArrayList<>();
         final Processor processor = exchange -> {
-            String jsonBean = "";
+            
             if (exchange.getIn().getBody(List.class) != null) {
-                jsonBean = JSONBeanUtil.toJSONBean(exchange.getIn().getBody(List.class));
-            } else {
-                jsonBean = JSONBeanUtil.toJSONBean(exchange.getIn().getBody(Map.class));
+                List<Map> list = exchange.getIn().getBody(List.class);
+                for (Map map : list) {
+                    //String jsonBean = JSONBeanUtil.toJSONBean(map);
+                    List<String> names = exchange.getContext().getComponentNames();
+                    Collection endpoints = exchange.getContext().getEndpoints();
+                    //exchange.getContext().createProducerTemplate().sendBody("stream:out",jsonBean);
+                    //exchange.setProperty(Exchange.ROUTE_STOP, Boolean.TRUE); 
+                }
             }
-            exchange.getIn().setBody(jsonBean);
+//            } else {
+//            if (exchange.getIn().getBody().getClass().equals(Map.class)) {
+//                String jsonBean = JSONBeanUtil.toJSONBean(exchange.getIn().getBody(Map.class));
+//                exchange.getIn().setBody("JSON");
+//                
+//                exchange.getContext().createProducerTemplate().sendBody(jsonBean);
+//                exchange.setProperty(Exchange.ROUTE_STOP, Boolean.TRUE); 
+//            }
+            
         };
-        return processor;
+        
+        //FilterProcessor choice = new FilterProcessor(predicate, processor)
+            Expression expression = ExpressionBuilder.bodyExpression(List.class);
+            Splitter splitter = new Splitter(getCamelContext(), expression, processor, null);
+            final Processor pipeline = Pipeline.newInstance(getCamelContext(), splitter);
+        
+            return pipeline;
+        
+        
     }
 
 }

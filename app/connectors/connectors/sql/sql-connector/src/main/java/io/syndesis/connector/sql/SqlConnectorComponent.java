@@ -16,12 +16,15 @@
  */
 package io.syndesis.connector.sql;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
 import org.apache.camel.Processor;
 import org.apache.camel.component.connector.DefaultConnectorComponent;
+import org.apache.camel.processor.Pipeline;
+import org.apache.camel.processor.Splitter;
 
 import io.syndesis.connector.sql.stored.JSONBeanUtil;
 
@@ -42,6 +45,8 @@ public class SqlConnectorComponent extends DefaultConnectorComponent {
     public SqlConnectorComponent(String componentScheme) {
         super(COMPONENT_NAME, SqlConnectorComponent.class.getName());
     }
+    
+    
 
     @Override
     public Processor getBeforeProducer() {
@@ -60,15 +65,22 @@ public class SqlConnectorComponent extends DefaultConnectorComponent {
     public Processor getAfterProducer() {
         @SuppressWarnings("unchecked")
         final Processor processor = exchange -> {
-            String jsonBean = "";
+            List<String> jsonList = new ArrayList<>();
             if (exchange.getIn().getBody(List.class) != null) {
-                jsonBean = JSONBeanUtil.toJSONBean(exchange.getIn().getBody(List.class));
+                List<Map> list = exchange.getIn().getBody(List.class);
+                for (Map map : list) {
+                    jsonList.add(JSONBeanUtil.toJSONBean(map));
+                }
+                exchange.getIn().setBody(jsonList);
             } else {
-                jsonBean = JSONBeanUtil.toJSONBean(exchange.getIn().getBody(Map.class));
+                String jsonBean = JSONBeanUtil.toJSONBean(exchange.getIn().getBody(Map.class));
+                exchange.getIn().setBody(jsonBean);
             }
-            exchange.getIn().setBody(jsonBean);
+            
         };
-        return processor;
+        Splitter splitter = new Splitter(getCamelContext(), null, processor, null);
+        final Processor pipeline = Pipeline.newInstance(getCamelContext(), splitter);
+        return pipeline;
     }
 
 }

@@ -19,7 +19,9 @@ package io.syndesis.connector.sql;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -35,6 +37,7 @@ import org.apache.commons.dbcp.BasicDataSource;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.syndesis.connector.sql.SqlParam.SqlSampleValue;
@@ -84,33 +87,39 @@ public class SqlStartConnectorComponentTest {
 
         CamelContext context = new DefaultCamelContext(registry);
 
-        CountDownLatch latch = new CountDownLatch(1);
+        CountDownLatch latch = new CountDownLatch(2);
         final Result result = new Result();
 
         try {
             context.addRoutes(new RouteBuilder() {
                 @Override
                 public void configure() throws Exception {
-                    from("sql-start-connector:SELECT * FROM NAME ORDER BY id")
+                    from("sql-start-connector:SELECT * FROM NAME ORDER BY id?schedulerPeriod=50000")
+                    //.split(body())
                     .process(new Processor() {
                         @Override
                         public void process(Exchange exchange)
                                 throws Exception {
-                            result.setResult(exchange.getIn().getBody(String.class));
+                            Object test = exchange.getIn().getBody();
+                            System.out.println(test.getClass() + ":" + test.toString());
+                            //result.getJsonBeans().add((String) exchange.getIn().getBody());
                             latch.countDown();
                         }
-                    }).to("stream:out");
+                    })
+                    
+                    .to("stream:out");
                 }
             });
             context.start();
             latch.await(30l,TimeUnit.SECONDS);
+            System.out.println(result.getJsonBeans().size());
             Assert.assertEquals("[{\"LASTNAME\":\"Jackson\",\"FIRSTNAME\":\"Joe\",\"ID\":1},{\"LASTNAME\":\"Waters\",\"FIRSTNAME\":\"Roger\",\"ID\":2}]", result.getJsonBean());
         } finally {
             context.stop();
         }
     }
 
-    @Test
+    @Test @Ignore
     public void camelConnectorInputParamTest() throws Exception {
 
         Statement stmt = connection.createStatement();
@@ -175,6 +184,7 @@ public class SqlStartConnectorComponentTest {
     }
 
     class Result {
+        List<String> jsonBeans = new ArrayList<>();
         String jsonBean;
 
         public String getJsonBean() {
@@ -182,6 +192,12 @@ public class SqlStartConnectorComponentTest {
         }
         public void setResult(String jsonBean) {
             this.jsonBean = jsonBean;
+        }
+        public List<String> getJsonBeans() {
+            return jsonBeans;
+        }
+        public void setJsonBeans(List<String> jsonBeans) {
+            this.jsonBeans = jsonBeans;
         }
     }
 }
