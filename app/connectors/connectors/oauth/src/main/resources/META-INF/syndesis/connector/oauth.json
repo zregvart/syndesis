@@ -1,0 +1,117 @@
+{
+  "id": "oauth",
+  "name": "OAuth",
+  "description": "OAuth sample",
+  "icon": "fa-shield-alt",
+  "dependencies": [
+    {
+      "type": "MAVEN",
+      "id": "@project.groupId@:@project.artifactId@:@project.version@"
+    }
+  ],
+  "configuredProperties": {
+    "tokenUrl": "https://api.example.com/oauth2/token",
+    "authorizationUrl": "https://api.example.com/oauth2/login",
+    "authenticationType": "oauth2"
+  },
+  "properties": {
+    "accessToken": {
+      "kind": "property",
+      "displayName": "Access Token",
+      "group": "security",
+      "label": "security",
+      "required": false,
+      "type": "string",
+      "javaType": "java.lang.String",
+      "tags": [
+        "oauth-access-token"
+      ],
+      "deprecated": false,
+      "secret": true,
+      "componentProperty": true,
+      "description": "The access token"
+    },
+    "clientId": {
+      "kind": "property",
+      "displayName": "Client ID",
+      "group": "security",
+      "label": "security",
+      "required": false,
+      "type": "string",
+      "javaType": "java.lang.String",
+      "tags": [
+        "oauth-client-id"
+      ],
+      "deprecated": false,
+      "secret": true,
+      "componentProperty": true,
+      "description": "The access token"
+    },
+    "clientSecret": {
+      "kind": "property",
+      "displayName": "Client Secret",
+      "group": "security",
+      "label": "security",
+      "required": false,
+      "type": "string",
+      "javaType": "java.lang.String",
+      "tags": [
+        "oauth-client-secret"
+      ],
+      "deprecated": false,
+      "secret": true,
+      "componentProperty": true,
+      "description": "The access token"
+    },
+    "tokenUrl": {
+      "kind": "property",
+      "displayName": "Token URL",
+      "group": "security",
+      "label": "security",
+      "required": false,
+      "type": "string",
+      "javaType": "java.lang.String",
+      "tags": [
+        "oauth-access-token-url"
+      ],
+      "deprecated": false,
+      "secret": true,
+      "componentProperty": true,
+      "description": "The access token"
+    },
+    "authorizationUrl": {
+      "kind": "property",
+      "displayName": "Authorization URL",
+      "group": "security",
+      "label": "security",
+      "required": false,
+      "type": "string",
+      "javaType": "java.lang.String",
+      "tags": [
+        "oauth-authorization-url"
+      ],
+      "deprecated": false,
+      "secret": true,
+      "componentProperty": true,
+      "description": "The access token"
+    },
+    "authenticationType": {
+      "kind": "property",
+      "displayName": "Authorization URL",
+      "group": "security",
+      "label": "security",
+      "required": false,
+      "type": "string",
+      "javaType": "java.lang.String",
+      "tags": [
+        "authentication-type"
+      ],
+      "deprecated": false,
+      "secret": true,
+      "componentProperty": true,
+      "description": "The access token"
+    }
+  },
+  "actions": [
+  ]
+}
