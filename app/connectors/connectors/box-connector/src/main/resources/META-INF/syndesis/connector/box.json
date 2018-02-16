@@ -1,0 +1,169 @@
+{
+    "id": "box",
+    "name": "BOX",
+    "description": "File uploading and Recieving from the Box",
+    "icon": "fa-ftp",
+    "dependencies": [
+        {
+            "type": "MAVEN",
+            "id": "@project.groupId@:@project.artifactId@:@project.version@"
+        }
+    ],
+    "componentScheme": "box",
+    "configuredProperties": {
+        "tokenUrl": "https://api.box.com/oauth2/token",
+        "authorizationUrl": "https://account.box.com/api/oauth2/authorize",
+        "authenticationType": "oauth2"
+    },
+    "tags": [
+        "verifier"
+    ],
+    "properties": {
+        "userName": {
+            "kind": "parameter",
+            "displayName": "User name",
+            "group": "common,security",
+            "required": true,
+            "type": "string",
+            "javaType": "java.lang.String",
+            "deprecated": false,
+            "secret": false,
+            "description": "Box user name"
+        },
+        "userPassword": {
+            "kind": "parameter",
+            "displayName": "User password",
+            "group": "common,security",
+            "required": true,
+            "type": "string",
+            "javaType": "java.lang.String",
+            "deprecated": false,
+            "description": "Box user password"
+        },
+        "clientId": {
+            "kind": "parameter",
+            "displayName": "Box application client ID",
+            "group": "common,security",
+            "required": true,
+            "type": "string",
+            "javaType": "java.lang.String",
+            "tags": [
+                "oauth-client-id"
+            ],
+            "deprecated": false,
+            "description": "Box application client ID"
+        },
+        "clientSecret": {
+            "kind": "parameter",
+            "displayName": "Box application client secret",
+            "group": "common,security",
+            "required": true,
+            "type": "string",
+            "javaType": "java.lang.String",
+            "tags": [
+                "oauth-client-secret"
+            ],
+            "deprecated": false,
+            "description": "Box application client secret"
+        },
+        "tokenUrl": {
+            "kind": "property",
+            "displayName": "Token URL",
+            "group": "security",
+            "label": "security",
+            "required": false,
+            "type": "string",
+            "javaType": "java.lang.String",
+            "tags": [
+                "oauth-access-token-url"
+            ],
+            "deprecated": false,
+            "secret": true,
+            "componentProperty": true,
+            "description": "The access token"
+        },
+        "authorizationUrl": {
+            "kind": "property",
+            "displayName": "Authorization URL",
+            "group": "security",
+            "label": "security",
+            "required": false,
+            "type": "string",
+            "javaType": "java.lang.String",
+            "tags": [
+                "oauth-authorization-url"
+            ],
+            "deprecated": false,
+            "secret": true,
+            "componentProperty": true,
+            "description": "Authorization URL"
+        },
+        "authenticationType": {
+            "kind": "property",
+            "displayName": "Authentication Type",
+            "group": "security",
+            "label": "security",
+            "required": false,
+            "type": "string",
+            "javaType": "java.lang.String",
+            "tags": [
+                "authentication-type"
+            ],
+            "deprecated": false,
+            "secret": true,
+            "componentProperty": true,
+            "description": "Authentication Type"
+        }
+    },
+    "actions": [
+        {
+            "name": "upload",
+            "description": "Upload a file to Box",
+            "id": "io.syndesis:box-upload-connector",
+            "pattern": "To",
+            "actionType": "connector",
+            "descriptor": {
+                "inputDataShape": {
+                    "kind": "*"
+                },
+                "outputDataShape": {
+                    "kind": "*"
+                },
+                "connectorFactory": "io.syndesis.connector.box.BoxConnectorFactory",
+                "configuredProperties": {
+                    
+                },
+                "propertyDefinitionSteps": [
+                    {
+                        "name": "Upload to Box",
+                        "description": "Upload to Box",
+                        "properties": {
+                            "parentFolderId": {
+                                "kind": "parameter",
+                                "displayName": "Parent folder ID",
+                                "group": "producer",
+                                "required": true,
+                                "type": "string",
+                                "javaType": "java.lang.String",
+                                "deprecated": false,
+                                "secret": false,
+                                "description": "Parent folder ID to upload the file"
+                            },
+                            "fileName": {
+                                "kind": "path",
+                                "displayName": "File Name",
+                                "group": "common",
+                                "required": true,
+                                "type": "string",
+                                "javaType": "java.lang.String",
+                                "deprecated": false,
+                                "secret": false,
+                                "description": "Desired name of the file name after the upload"
+                            }
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}
