@@ -13,7 +13,8 @@
     "configuredProperties": {
         "tokenUrl": "https://api.box.com/oauth2/token",
         "authorizationUrl": "https://account.box.com/api/oauth2/authorize",
-        "authenticationType": "oauth2"
+        "authenticationType": "oauth2",
+        "useParametersForClientCredentials": "true"
     },
     "tags": [
         "verifier"
@@ -113,6 +114,22 @@
             "secret": true,
             "componentProperty": true,
             "description": "Authentication Type"
+        },
+        "useParametersForClientCredentials": {
+            "kind": "property",
+            "displayName": "Use OAuth parameters",
+            "group": "security",
+            "label": "security",
+            "required": false,
+            "type": "string",
+            "javaType": "java.lang.String",
+            "tags": [
+                "oauth-authorize-using-parameters"
+            ],
+            "deprecated": false,
+            "secret": true,
+            "componentProperty": true,
+            "description": "Use OAuth parameters in authorization code to oauth token exchange"
         }
     },
     "actions": [
