@@ -1,0 +1,11 @@
+# Name: nfs
+# Description: Creates NFS persistent volume and enables NFS support in origin
+
+ssh sudo sudo install -d -o nobody -g nogroup -m 755 /exports
+ssh sudo echo '/exports *(rw,all_squash,fsid=0)' |sudo tee /usr/local/etc/exports
+ssh sudo /usr/local/sbin/exportfs -rv
+ssh sudo ln -s /usr/local/etc/init.d/nfs-server /etc/init.d/nfs-server
+ssh sudo /usr/local/etc/init.d/nfs-server start
+docker exec -t origin yum install -y nfs-utils
+oc create -n default -f https://gist.githubusercontent.com/zregvart/5028f10414eb8e76fdd006db322be0c7/raw/c8b814c094268161ac3b89b146451836d669524c/nfs-pv-template.yml
+docker exec origin /bin/bash -c $'oc process -n default nfs-pv-template -p NFS_SERVER=#{ip} |oc create -f-'
