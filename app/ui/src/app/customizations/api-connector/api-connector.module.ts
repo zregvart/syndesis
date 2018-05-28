@@ -20,6 +20,7 @@ import { ApiConnectorListComponent } from './api-connector-list';
 import { apiConnectorReducer } from './api-connector.reducer';
 import { ApiConnectorEffects } from './api-connector.effects';
 import { ApiConnectorService } from './api-connector.service';
+import { ApicurioEditorModule, ApiEditorComponent } from 'apicurio-design-studio';
 
 @NgModule({
   imports: [
@@ -33,6 +34,7 @@ import { ApiConnectorService } from './api-connector.service';
     ApiModule.forChild(apiConnectorEndpoints),
     StoreModule.forFeature('apiConnectorState', apiConnectorReducer),
     EffectsModule.forFeature([ApiConnectorEffects]),
+    ApicurioEditorModule
   ],
   exports: [RouterModule],
   declarations: [
@@ -41,7 +43,7 @@ import { ApiConnectorService } from './api-connector.service';
     ApiConnectorAuthComponent,
     ApiConnectorSwaggerUploadComponent,
     ApiConnectorInfoComponent,
-    ApiConnectorReviewComponent,
+    ApiConnectorReviewComponent
   ],
   providers: [ApiConnectorService]
 })

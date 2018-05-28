@@ -13,6 +13,8 @@ import {
   CustomApiConnectorAuthSettings
 } from '@syndesis/ui/customizations/api-connector';
 
+import { ApiEditorComponent, EditableApiDefinition } from 'apicurio-design-studio';
+
 enum WizardSteps {
   UploadSwagger       = 1,
   ReviewApiConnector  = 2,
@@ -29,6 +31,9 @@ export class ApiConnectorCreateComponent implements OnInit, OnDestroy {
   currentActiveStep = 1;
   apiConnectorState$: Observable<ApiConnectorState>;
   @ViewChild('cancelModalTemplate') cancelModalTemplate: TemplateRef<any>;
+
+  @ViewChild('apiEditor')
+  apiEditor: ApiEditorComponent;
 
   private cancelModalId = 'create-cancellation-modal';
 
@@ -51,6 +56,8 @@ export class ApiConnectorCreateComponent implements OnInit, OnDestroy {
     this.apiConnectorState$.map(apiConnectorState => apiConnectorState.createRequest)
       .first(request => !!request && request.isComplete)
       .subscribe(() => this.redirectBack());
+
+    this.apiEditor.api = new EditableApiDefinition();
   }
 
   showCancelModal(): void {
