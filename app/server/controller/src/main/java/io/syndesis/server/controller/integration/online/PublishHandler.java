@@ -34,6 +34,7 @@ import io.syndesis.integration.api.IntegrationProjectGenerator;
 import io.syndesis.common.model.integration.Integration;
 import io.syndesis.common.model.integration.IntegrationDeployment;
 import io.syndesis.common.model.integration.IntegrationDeploymentState;
+import io.syndesis.common.model.perf.Performance;
 import io.syndesis.server.openshift.DeploymentData;
 import io.syndesis.server.openshift.OpenShiftService;
 
@@ -99,6 +100,8 @@ public class PublishHandler extends BaseHandler implements StateChangeHandler {
 
             DeploymentData deploymentData = createDeploymentData(integration, integrationDeployment);
             String buildLabel = "buildv" + deploymentData.getVersion();
+
+            Performance.INSTANCE.mark(integration.getName(), "build");
             stepPerformer.perform(buildLabel, this::build, deploymentData);
 
             deploymentData = new DeploymentData.Builder().createFrom(deploymentData).withImage(stepPerformer.stepsPerformed.get(buildLabel)).build();
@@ -106,6 +109,7 @@ public class PublishHandler extends BaseHandler implements StateChangeHandler {
                 return new StateUpdate(IntegrationDeploymentState.Unpublished, integrationDeployment.getStepsDone(), "Integration has still active deployments. Will retry shortly");
             }
 
+            Performance.INSTANCE.mark(integration.getName(), "deploy");
             stepPerformer.perform("deploy", this::deploy, deploymentData);
         } catch (@SuppressWarnings("PMD.AvoidCatchingGenericException") Exception e) {
             logError(integrationDeployment, "[ERROR] Activation failure", e);
@@ -184,6 +188,9 @@ public class PublishHandler extends BaseHandler implements StateChangeHandler {
     }
 
     private void updateDeploymentState(IntegrationDeployment integrationDeployment, IntegrationDeploymentState state) {
+        if (state == IntegrationDeploymentState.Published) {
+            Performance.INSTANCE.mark(integrationDeployment.getSpec().getName(), "published");
+        }
         IntegrationDeployment d = dataManager.fetch(IntegrationDeployment.class, integrationDeployment.getId().get());
         dataManager.update(d.withCurrentState(state));
     }
