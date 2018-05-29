@@ -24,9 +24,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import io.syndesis.server.controller.ControllersConfigurationProperties;
 import io.syndesis.server.controller.StateChangeHandler;
 import io.syndesis.server.controller.StateUpdate;
+import io.syndesis.common.util.Json;
 import io.syndesis.common.util.Labels;
 import io.syndesis.common.util.SyndesisServerException;
 import io.syndesis.server.dao.manager.DataManager;
@@ -99,15 +102,6 @@ public class PublishHandler extends BaseHandler implements StateChangeHandler {
             deactivatePreviousDeployments(integrationDeployment);
 
             DeploymentData deploymentData = createDeploymentData(integration, integrationDeployment);
-            String buildLabel = "buildv" + deploymentData.getVersion();
-
-            Performance.INSTANCE.mark(integration.getName(), "build");
-            stepPerformer.perform(buildLabel, this::build, deploymentData);
-
-            deploymentData = new DeploymentData.Builder().createFrom(deploymentData).withImage(stepPerformer.stepsPerformed.get(buildLabel)).build();
-            if (hasPublishedDeployments(integrationDeployment)) {
-                return new StateUpdate(IntegrationDeploymentState.Unpublished, integrationDeployment.getStepsDone(), "Integration has still active deployments. Will retry shortly");
-            }
 
             Performance.INSTANCE.mark(integration.getName(), "deploy");
             stepPerformer.perform("deploy", this::deploy, deploymentData);
@@ -138,16 +132,21 @@ public class PublishHandler extends BaseHandler implements StateChangeHandler {
 
         String integrationId = integrationDeployment.getIntegrationId().orElseThrow(() -> new IllegalStateException("IntegrationDeployment should have an integrationId"));
         String version = Integer.toString(integrationDeployment.getVersion());
-        return DeploymentData.builder()
-            .withVersion(integrationDeployment.getVersion())
-            .addLabel(OpenShiftService.INTEGRATION_ID_LABEL, Labels.validate(integrationId))
-            .addLabel(OpenShiftService.DEPLOYMENT_VERSION_LABEL, version)
-            .addLabel(OpenShiftService.USERNAME_LABEL, Labels.sanitize(username))
-            .addAnnotation(OpenShiftService.INTEGRATION_NAME_ANNOTATION, integration.getName())
-            .addAnnotation(OpenShiftService.INTEGRATION_ID_LABEL, integrationId)
-            .addAnnotation(OpenShiftService.DEPLOYMENT_VERSION_LABEL, version)
-            .addSecretEntry("application.properties", propsToString(applicationProperties))
-            .build();
+        try {
+            return DeploymentData.builder()
+                .withVersion(integrationDeployment.getVersion())
+                .addLabel(OpenShiftService.INTEGRATION_ID_LABEL, Labels.validate(integrationId))
+                .addLabel(OpenShiftService.DEPLOYMENT_VERSION_LABEL, version)
+                .addLabel(OpenShiftService.USERNAME_LABEL, Labels.sanitize(username))
+                .addAnnotation(OpenShiftService.INTEGRATION_NAME_ANNOTATION, integration.getName())
+                .addAnnotation(OpenShiftService.INTEGRATION_ID_LABEL, integrationId)
+                .addAnnotation(OpenShiftService.DEPLOYMENT_VERSION_LABEL, version)
+                .addSecretEntry("application.properties", propsToString(applicationProperties))
+                .addSecretEntry("integration.json", Json.writer().writeValueAsString(integration))
+                .build();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Unable to serialize integration to JSON", e);
+        }
     }
 
 

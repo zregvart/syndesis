@@ -15,6 +15,7 @@
  */
 package io.syndesis.integration.runtime;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -104,7 +105,7 @@ public class IntegrationRouteBuilder extends RouteBuilder {
     protected Integration loadIntegration() throws IOException {
         final Integration integration;
 
-        try (InputStream is = ResourceHelper.resolveResourceAsInputStream(getContext().getClassResolver(), configurationUri)) {
+        try (InputStream is = new FileInputStream(configurationUri)) {
             if (is != null) {
                 LOGGER.info("Loading integration from: {}", configurationUri);
                 integration = Json.reader().forType(Integration.class).readValue(is);

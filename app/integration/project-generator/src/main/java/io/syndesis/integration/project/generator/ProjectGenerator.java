@@ -112,6 +112,21 @@ public class ProjectGenerator implements IntegrationProjectGenerator {
     public Properties generateApplicationProperties(final Integration integrationDefinition) {
         final Integration integration = sanitize(integrationDefinition, resourceManager);
         final Properties properties = new Properties();
+        properties.put("logging.level.io.syndesis", "DEBUG");
+        properties.put("logging.level.org.apache.camel.spring.boot.RoutesCollector", "DEBUG");
+        properties.put("endpoints.enabled", "false");
+        properties.put("endpoints.health.enabled", "true");
+        properties.put("management.health.defaults.enabled", "false");
+        properties.put("camel.springboot.name", integration.getName());
+        properties.put("camel.springboot.streamCachingEnabled", "true");
+        properties.put("camel.springboot.xml-routes", "false");
+        properties.put("camel.springboot.xml-rests", "false");
+        properties.put("camel.springboot.java-routes-include-pattern", "io/syndesis/integration/image/runner/**");
+        properties.put("endpoints.camelroutecontroller.enabled", "false");
+        properties.put("endpoints.camelroutes.enabled", "false");
+        properties.put("camel.health.enabled", "false");
+        properties.put("camel.health.indicator.enabled", "true");
+
         final List<? extends Step> steps = integration.getSteps();
 
         for (int i = 0; i < steps.size(); i++) {

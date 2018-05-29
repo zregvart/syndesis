@@ -27,7 +27,7 @@ public class IntegrationRuntimeConfiguration {
     /**
      * The Syndesis configuration location;
      */
-    private String configurationLocation = "classpath:syndesis/integration/integration.json";
+    private String configurationLocation = "/deployments/config/integration.json";
 
     public boolean isEnabled() {
         return enabled;
