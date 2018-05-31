@@ -1,10 +1,20 @@
 package io.syndesis.example;
 
+import org.apache.camel.builder.RouteBuilder;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.stereotype.Component;
 
 @SpringBootApplication
 public class Application {
+
+    @Component
+    public static class StartedRoute extends RouteBuilder {
+        @Override
+        public void configure() throws Exception {
+            from("timer:go?delay=0&repeatCount=1").to("http4:syndesis-server/api/v1/perf/stop?group={{name}}");
+        }
+    }
 
     /**
      * A main method to start this application.
