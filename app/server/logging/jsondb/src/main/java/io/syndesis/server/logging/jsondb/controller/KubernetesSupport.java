@@ -17,21 +17,37 @@ package io.syndesis.server.logging.jsondb.controller;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.internal.PodOperationsImpl;
+import io.fabric8.kubernetes.client.internal.SSLUtils;
 import io.fabric8.kubernetes.client.utils.HttpClientUtils;
+
+import net.bytebuddy.ByteBuddy;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.implementation.MethodCall;
+import net.bytebuddy.matcher.ElementMatchers;
+
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.URL;
+import java.security.GeneralSecurityException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * Provides some enriched operations against a KubernetesClient.
@@ -43,9 +59,46 @@ public class KubernetesSupport {
     private final KubernetesClient client;
     private final OkHttpClient okHttpClient;
 
+    private X509TrustManager trustManager;
+
+    private static final Class<? extends SocketFactory> SOCKET_FACTORY_DELEGATE_CLASS = new ByteBuddy()
+        .subclass(SocketFactory.class)
+        .defineField("delegate", SocketFactory.class, Modifier.PUBLIC)
+        .method(ElementMatchers.named("createSocket"))
+        .intercept(
+            Advice.to(SetupKeepAliveAdvice.class)
+                .wrap(MethodCall.invokeSelf().onField("delegate").withAllArguments())
+        )
+        .make()
+        .load(KubernetesSupport.class.getClassLoader())
+        .getLoaded();
+
+    private static final Field SOCKET_FACTORY_DELEGATE = delegateField(SOCKET_FACTORY_DELEGATE_CLASS);
+
+    private static final Class<? extends SSLSocketFactory> SSL_SOCKET_FACTORY_DELEGATE_CLASS = new ByteBuddy()
+        .subclass(SSLSocketFactory.class)
+        .defineField("delegate", SSLSocketFactory.class, Modifier.PUBLIC)
+        .method(ElementMatchers.named("createSocket"))
+        .intercept(
+            Advice.to(SetupKeepAliveAdvice.class)
+                .wrap(MethodCall.invokeSelf().onField("delegate").withAllArguments())
+        )
+        .make()
+        .load(KubernetesSupport.class.getClassLoader())
+        .getLoaded();
+
+    private static final Field SSL_SOCKET_FACTORY_DELEGATE = delegateField(SSL_SOCKET_FACTORY_DELEGATE_CLASS);
+
     public KubernetesSupport(KubernetesClient client) {
         this.client = client;
         this.okHttpClient = HttpClientUtils.createHttpClient(this.client.getConfiguration());
+        final TrustManager[] trustManagers;
+        try {
+            trustManagers = SSLUtils.trustManagers(this.client.getConfiguration());
+        } catch (GeneralSecurityException | IOException e) {
+            throw new IllegalStateException("Unable to recreate TrustManagers from OKHTTP client configuration", e);
+        }
+        trustManager = (X509TrustManager) trustManagers[0];
     }
 
 
@@ -71,9 +124,13 @@ public class KubernetesSupport {
 
             Thread.currentThread().setName("Logs Controller [running], request: " + podLogUrl);
             Request request = new Request.Builder().url(new URL(podLogUrl)).get().build();
+
             OkHttpClient clone = okHttpClient.newBuilder()
                 .readTimeout(0, TimeUnit.MILLISECONDS)
+                .socketFactory(withKeepalive(okHttpClient.socketFactory()))
+                .sslSocketFactory(withKeepalive(okHttpClient.sslSocketFactory()), trustManager)
                 .build();
+
             clone.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
@@ -104,6 +161,34 @@ public class KubernetesSupport {
             throw new IOException("Unexpected Error", t);
         } finally {
             Thread.currentThread().setName(ActivityTrackingController.IDLE_THREAD_NAME);
+        }
+    }
+
+    private static SocketFactory withKeepalive(final SocketFactory socketFactory) {
+        try {
+            final SocketFactory delegator = SOCKET_FACTORY_DELEGATE_CLASS.newInstance();
+            SOCKET_FACTORY_DELEGATE.set(delegator, socketFactory);
+            return delegator;
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new IllegalStateException("Unable to advise SocketFactory with keep alive advice", e);
+        }
+    }
+
+    private static SSLSocketFactory withKeepalive(final SSLSocketFactory socketFactory) {
+        try {
+            final SSLSocketFactory delegator = SSL_SOCKET_FACTORY_DELEGATE_CLASS.newInstance();
+            SSL_SOCKET_FACTORY_DELEGATE.set(delegator, socketFactory);
+            return delegator;
+        } catch (InstantiationException | IllegalAccessException e) {
+            throw new IllegalStateException("Unable to advise SocketFactory with keep alive advice", e);
+        }
+    }
+
+    private static Field delegateField(Class<? extends SocketFactory> clazz) {
+        try {
+            return clazz.getField("delegate");
+        } catch (NoSuchFieldException e) {
+            throw new IllegalStateException("No `delegate` field in the supplied class: " + clazz, e);
         }
     }
 
