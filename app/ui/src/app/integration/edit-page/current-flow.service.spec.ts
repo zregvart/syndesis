@@ -7,7 +7,8 @@ import {
   createStep,
   Integration,
   Step,
-  Steps
+  Steps,
+  Flow
 } from '@syndesis/ui/platform';
 import { CoreModule } from '@syndesis/ui/core';
 import { SyndesisCommonModule } from '@syndesis/ui/common';
@@ -47,7 +48,11 @@ describe('CurrentFlow', () => {
 
   function getDummyIntegration(): Integration {
     const rc = createIntegration();
-    rc.steps = <Steps>[];
+    const flow: Flow = {
+      connections: <Connection[]>[],
+      steps: <Step[]>[]
+    };
+    rc.flows = [flow];
 
     const step1 = createStep();
     step1.id = 'foobar';
@@ -55,18 +60,18 @@ describe('CurrentFlow', () => {
     step1.connection = TypeFactory.create<Connection>();
     step1.connection.connectorId = 'timer';
     step1.action = TypeFactory.create<Action>();
-    rc.steps.push(step1);
+    flow.steps.push(step1);
 
     const step2 = createStep();
     step2.id = '3';
     step2.stepKind = 'endpoint';
     step2.connection = TypeFactory.create<Connection>();
     step2.action = TypeFactory.create<Action>();
-    rc.steps.push(step2);
+    flow.steps.push(step2);
 
     const step3 = createStep();
     step3.stepKind = 'log';
-    rc.steps.push(step3);
+    flow.steps.push(step3);
 
     const step4 = createStep();
     step4.id = '4';
@@ -74,7 +79,7 @@ describe('CurrentFlow', () => {
     step4.connection = TypeFactory.create<Connection>();
     step4.connection.connectorId = 'http';
     step4.action = TypeFactory.create<Action>();
-    rc.steps.push(step4);
+    flow.steps.push(step4);
     return rc;
   }
 
