@@ -41,7 +41,7 @@ public class SqlConnectorTest extends SqlConnectorTestSupport {
     protected void doPreSetup() throws Exception {
         try (Statement stmt = db.connection.createStatement()) {
             //stmt.executeUpdate("DROP TABLE ADDRESS");
-            stmt.executeUpdate("CREATE TABLE ADDRESS (street VARCHAR(255), number INTEGER)");
+            stmt.executeUpdate("CREATE TABLE ADDRESS (ID INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 2, INCREMENT BY 1), street VARCHAR(255), number INTEGER)");
         }
     }
 
@@ -60,7 +60,7 @@ public class SqlConnectorTest extends SqlConnectorTestSupport {
                 builder -> builder.putConfiguredProperty("name", "start")),
             newSqlEndpointStep(
                 "sql-connector",
-                builder -> builder.putConfiguredProperty("query", "INSERT INTO ADDRESS VALUES (:#street, :#number)")),
+                builder -> builder.putConfiguredProperty("query", "INSERT INTO ADDRESS (street, number) VALUES (:#street, :#number)")),
             newSimpleEndpointStep(
                 "log",
                 builder -> builder.putConfiguredProperty("loggerName", "test"))
@@ -85,8 +85,9 @@ public class SqlConnectorTest extends SqlConnectorTestSupport {
             stmt.execute("SELECT * FROM ADDRESS");
             ResultSet resultSet = stmt.getResultSet();
             resultSet.next();
-            Assertions.assertThat(resultSet.getString(1)).isEqualTo("LaborInVain");
-            Assertions.assertThat(resultSet.getInt(2)).isEqualTo(14);
+            Assertions.assertThat(resultSet.getInt(1)).isEqualTo(2);
+            Assertions.assertThat(resultSet.getString(2)).isEqualTo("LaborInVain");
+            Assertions.assertThat(resultSet.getInt(3)).isEqualTo(14);
         }
     }
 }

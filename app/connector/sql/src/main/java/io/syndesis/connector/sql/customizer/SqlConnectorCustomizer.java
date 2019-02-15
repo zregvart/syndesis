@@ -29,6 +29,7 @@ import io.syndesis.integration.component.proxy.ComponentProxyComponent;
 import io.syndesis.integration.component.proxy.ComponentProxyCustomizer;
 import org.apache.camel.Exchange;
 import org.apache.camel.Message;
+import org.apache.camel.component.sql.SqlConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.SqlParameterValue;
@@ -38,6 +39,8 @@ public final class SqlConnectorCustomizer implements ComponentProxyCustomizer {
     private Map<String, Object> options;
     private Map<String, Integer> jdbcTypeMap;
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlConnectorCustomizer.class);
+    private String autoIncrementColumnName;
+    private boolean isRetrieveGeneratedKeys;
 
     @Override
     public void customize(ComponentProxyComponent component, Map<String, Object> options) {
@@ -53,11 +56,17 @@ public final class SqlConnectorCustomizer implements ComponentProxyCustomizer {
             final Map<String,SqlParameterValue> sqlParametersValues = JSONBeanUtil.parseSqlParametersFromJSONBean(body, jdbcTypeMap);
             exchange.getIn().setBody(sqlParametersValues);
         }
+        if (isRetrieveGeneratedKeys) {
+            exchange.getIn().setHeader(SqlConstants.SQL_RETRIEVE_GENERATED_KEYS, true);
+        }
     }
 
     private void doAfterProducer(Exchange exchange) {
         final Message in = exchange.getIn();
         in.setBody(JSONBeanUtil.toJSONBeans(in));
+        if (isRetrieveGeneratedKeys) {
+            in.setBody(JSONBeanUtil.toJSONBeansFromHeader(in, autoIncrementColumnName));
+        }
     }
 
     private void initJdbcMap() {
@@ -68,9 +77,13 @@ public final class SqlConnectorCustomizer implements ComponentProxyCustomizer {
             final Map<String, Integer> tmpMap = new HashMap<>();
             try (Connection connection = dataSource.getConnection()) {
 
-                SqlStatementMetaData md = new SqlStatementParser(connection, null, sql).parse();
-                for (SqlParam sqlParam: md.getInParams()) {
+                SqlStatementMetaData statementInfo = new SqlStatementParser(connection, null, sql).parse();
+                for (SqlParam sqlParam: statementInfo.getInParams()) {
                     tmpMap.put(sqlParam.getName(), sqlParam.getJdbcType().getVendorTypeNumber());
+                }
+                if (statementInfo.getAutoIncrementColumnName() != null) {
+                    isRetrieveGeneratedKeys = true;
+                    autoIncrementColumnName = statementInfo.getAutoIncrementColumnName();
                 }
             } catch (SQLException e){
                 LOGGER.error(e.getMessage(),e);
