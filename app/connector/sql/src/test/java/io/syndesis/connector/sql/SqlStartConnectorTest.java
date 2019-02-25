@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 
 import io.syndesis.common.model.integration.Step;
 import io.syndesis.connector.sql.common.JSONBeanUtil;
+import io.syndesis.connector.sql.common.SqlStatementMetaData;
+import io.syndesis.connector.sql.common.SqlStatementParser;
 import io.syndesis.connector.sql.util.SqlConnectorTestSupport;
 import org.apache.camel.Exchange;
 import org.apache.camel.ProducerTemplate;
@@ -30,12 +32,13 @@ import org.apache.camel.component.mock.MockEndpoint;
 import org.junit.Assert;
 import org.junit.Test;
 
-@SuppressWarnings({"PMD.SignatureDeclareThrowsException"})
 public class SqlStartConnectorTest extends SqlConnectorTestSupport {
 
     // **************************
     // Set up
     // **************************
+
+    static String CAMEL_SQL="SELECT * FROM NAME ORDER BY id";
 
     @Override
     protected void doPreSetup() throws Exception {
@@ -54,7 +57,7 @@ public class SqlStartConnectorTest extends SqlConnectorTestSupport {
                 builder -> builder.putConfiguredProperty("name", "start")),
             newSqlEndpointStep(
                 "sql-start-connector",
-                builder -> builder.putConfiguredProperty("query", "SELECT * FROM NAME ORDER BY id")),
+                builder -> builder.putConfiguredProperty("query", CAMEL_SQL)),
             newSimpleEndpointStep(
                 "log",
                 builder -> builder.putConfiguredProperty("loggerName", "test")),
@@ -85,9 +88,12 @@ public class SqlStartConnectorTest extends SqlConnectorTestSupport {
                 .map(JSONBeanUtil::parsePropertiesFromJSONBean)
                 .collect(Collectors.toList());
 
-        validateProperty(jsonBeans, "ID", "1", "2");
-        validateProperty(jsonBeans, "FIRSTNAME", "Joe", "Roger");
-        validateProperty(jsonBeans, "LASTNAME", "Jackson", "Waters");
+        SqlStatementParser parser = new SqlStatementParser(db.connection);
+        SqlStatementMetaData md = parser.parse(CAMEL_SQL);
+        
+        validateProperty(jsonBeans, md.getOutParams().get(0).getName(), "1", "2");
+        validateProperty(jsonBeans, md.getOutParams().get(1).getName(), "Joe", "Roger");
+        validateProperty(jsonBeans, md.getOutParams().get(2).getName(), "Jackson", "Waters");
     }
 
     // **************************

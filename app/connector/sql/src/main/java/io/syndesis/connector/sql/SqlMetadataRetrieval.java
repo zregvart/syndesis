@@ -90,13 +90,13 @@ public final class SqlMetadataRetrieval extends ComponentMetadataRetrieval {
             builderIn.set$schema(JSON_SCHEMA_ORG_SCHEMA);
             builderIn.setTitle("SQL_PARAM_IN");
             for (SqlParam inParam: sqlStatementMetaData.getInParams()) {
-                builderIn.putProperty(inParam.getName(), schemaFor(inParam.getJdbcType()));
+                builderIn.putProperty(inParam.getName(), schemaFor(JDBCType.valueOf(inParam.getJdbcType())));
             }
 
             final ObjectSchema builderOut = new ObjectSchema();
             builderOut.setTitle("SQL_PARAM_OUT");
             for (SqlParam outParam: sqlStatementMetaData.getOutParams()) {
-                builderOut.putProperty(outParam.getName(), schemaFor(outParam.getJdbcType()));
+                builderOut.putProperty(outParam.getName(), schemaFor(JDBCType.valueOf(outParam.getJdbcType())));
             }
             final ArraySchema outputSpec = new ArraySchema();
             outputSpec.set$schema(JSON_SCHEMA_ORG_SCHEMA);

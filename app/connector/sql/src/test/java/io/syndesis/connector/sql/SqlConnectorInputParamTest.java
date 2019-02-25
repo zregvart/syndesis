@@ -32,7 +32,7 @@ import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Test;
 
-@SuppressWarnings({"PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert"})
+//@SuppressWarnings({"PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert"})
 public class SqlConnectorInputParamTest extends SqlConnectorTestSupport {
     private static final String STATEMENT = "INSERT INTO ALLTYPES " +
         "(charType, varcharType, numericType, decimalType, smallType) VALUES " +
@@ -81,8 +81,8 @@ public class SqlConnectorInputParamTest extends SqlConnectorTestSupport {
 
     @Test
     public void sqlConnectorTest() throws Exception {
-        SqlStatementParser parser = new SqlStatementParser(db.connection, null, STATEMENT);
-        parser.parse();
+        SqlStatementParser parser = new SqlStatementParser(db.connection);
+        parser.parse(STATEMENT);
 
         Map<String,Object> values = new HashMap<>();
         values.put("CHARVALUE", SqlParam.SqlSampleValue.CHAR_VALUE);
@@ -99,10 +99,6 @@ public class SqlConnectorInputParamTest extends SqlConnectorTestSupport {
             stmt.execute("SELECT * FROM ALLTYPES");
             ResultSet resultSet = stmt.getResultSet();
             resultSet.next();
-            for (int i=1; i< 6; i++) {
-                System.out.print(resultSet.getString(i) + " ");
-            }
-            System.out.println(resultSet.getString(1));
             Assertions.assertThat(resultSet.getString(1)).isEqualTo(SqlParam.SqlSampleValue.CHAR_VALUE.toString());
             Assertions.assertThat(resultSet.getString(2)).isEqualTo(SqlParam.SqlSampleValue.STRING_VALUE);
             Assertions.assertThat(resultSet.getString(3)).isEqualTo(SqlParam.SqlSampleValue.DECIMAL_VALUE.toString());

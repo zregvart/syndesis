@@ -13,7 +13,7 @@ psql>create database test;
 
 ...
 docker run -p 3307:3306/tcp -e MYSQL_ROOT_PASSWORD=syndesis -d mysql
-mysql -p3307 -Uroot -p
+mysql -p3307 -uroot -p
 mysql> create database test;
 ...
 

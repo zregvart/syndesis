@@ -17,9 +17,9 @@ package io.syndesis.connector.sql.common;
 
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.sql.JDBCType;
 import java.sql.Time;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -27,42 +27,40 @@ import java.util.List;
 import lombok.Data;
 
 @Data
-@SuppressWarnings("PMD.StdCyclomaticComplexity")
+//@SuppressWarnings("PMD.StdCyclomaticComplexity")
 public class SqlParam {
 
     private String name;
-    private String column;
-    private JDBCType jdbcType;
-    private int columnPos;
-    private TypeValue<?> typeValue;
-    private Boolean isConstant;
-    private String value;
+    int jdbcType;
+    private SampleValue<?> sampleValue;
 
     public SqlParam() {
         super();
     }
 
-    public SqlParam(String name) {
+    public SqlParam(String name, int jdbcType) {
         super();
         this.name = name;
+        this.jdbcType = jdbcType;
+        this.sampleValue = valueForType(jdbcType);
     }
 
-    public void setJdbcType(JDBCType jdbcType) {
+    public void setJdbcType(int jdbcType) {
         this.jdbcType = jdbcType;
-        this.typeValue = javaType(jdbcType);
+        this.sampleValue = valueForType(jdbcType);
     }
 
 
     @Data
-    public static class TypeValue<T> {
+    public static class SampleValue<T> {
 
         private Class<T> clazz;
-        private T sampleValue;
+        private T value;
 
-        public TypeValue(Class<T> clazz, T sampleValue) {
+        public SampleValue(Class<T> clazz, T value) {
             super();
             this.clazz = clazz;
-            this.sampleValue = sampleValue;
+            this.value = value;
         }
     }
 
@@ -70,7 +68,7 @@ public class SqlParam {
         public static final List<String> ARRAY_VALUE = Collections.unmodifiableList(Arrays.asList("1","2","3"));
         public static final byte[] BINARY_VALUE = {1,2,3};
         public static final String STRING_VALUE = "abc";
-        public static final Character CHAR_VALUE = 'a';
+        public static final String CHAR_VALUE = "a";
         public static final Date DATE_VALUE = new Date(new java.util.Date().getTime());
         public static final Time TIME_VALUE = new Time(new java.util.Date().getTime());
         public static final Timestamp TIMESTAMP_VALUE = new Timestamp(new java.util.Date().getTime());
@@ -82,64 +80,64 @@ public class SqlParam {
         public static final Float FLOAT_VALUE = 0f;
     }
 
-    @SuppressWarnings({"rawtypes", "PMD.CyclomaticComplexity"})
-    static TypeValue<?> javaType(final JDBCType jdbcType) {
+    //@SuppressWarnings({"rawtypes", "PMD.CyclomaticComplexity"})
+    private static SampleValue<?> valueForType(final int jdbcType) {
 
         switch (jdbcType) {
-        case ARRAY:
-        case BINARY:
-        case BLOB:
-        case LONGVARBINARY:
-        case VARBINARY:
-            return new TypeValue<>(List.class, SqlSampleValue.ARRAY_VALUE);
-        case BIT:
-        case BOOLEAN:
-            return new TypeValue<>(Boolean.class, SqlSampleValue.BOOLEAN_VALUE);
-        case CHAR:
-            return new TypeValue<>(Character.class, SqlSampleValue.CHAR_VALUE);
-        case CLOB:
-        case DATALINK:
-        case LONGNVARCHAR:
-        case LONGVARCHAR:
-        case NCHAR:
-        case NCLOB:
-        case NVARCHAR:
-        case ROWID:
-        case SQLXML:
-        case VARCHAR:
-            return new TypeValue<>(String.class, SqlSampleValue.STRING_VALUE);
-        case DATE:
-            return new TypeValue<>(Date.class, SqlSampleValue.DATE_VALUE);
-        case TIME:
-            return new TypeValue<>(Time.class, SqlSampleValue.TIME_VALUE);
-        case TIMESTAMP:
-        case TIMESTAMP_WITH_TIMEZONE:
-        case TIME_WITH_TIMEZONE:
-            return new TypeValue<>(Timestamp.class, SqlSampleValue.TIMESTAMP_VALUE);
-        case DECIMAL:
-        case NUMERIC:
-            return new TypeValue<>(BigDecimal.class, SqlSampleValue.DECIMAL_VALUE);
-        case FLOAT:
-        case DOUBLE:
-            return new TypeValue<>(Double.class, SqlSampleValue.DOUBLE_VALUE);
-        case REAL:
-            return new TypeValue<>(Float.class, SqlSampleValue.FLOAT_VALUE);
-        case BIGINT:
-            return new TypeValue<>(Long.class, SqlSampleValue.LONG_VALUE);
-        case SMALLINT:
-        case INTEGER:
-        case TINYINT:
-            return new TypeValue<>(Integer.class, SqlSampleValue.INTEGER_VALUE);
-        case NULL:
+        case Types.ARRAY:
+        case Types.BINARY:
+        case Types.BLOB:
+        case Types.LONGVARBINARY:
+        case Types.VARBINARY:
+            return new SampleValue<>(List.class, SqlSampleValue.ARRAY_VALUE);
+        case Types.BIT:
+        case Types.BOOLEAN:
+            return new SampleValue<>(Boolean.class, SqlSampleValue.BOOLEAN_VALUE);
+        case Types.CHAR:
+            return new SampleValue<>(String.class, SqlSampleValue.CHAR_VALUE);
+        case Types.CLOB:
+        case Types.DATALINK:
+        case Types.LONGNVARCHAR:
+        case Types.LONGVARCHAR:
+        case Types.NCHAR:
+        case Types.NCLOB:
+        case Types.NVARCHAR:
+        case Types.ROWID:
+        case Types.SQLXML:
+        case Types.VARCHAR:
+            return new SampleValue<>(String.class, SqlSampleValue.STRING_VALUE);
+        case Types.DATE:
+            return new SampleValue<>(Date.class, SqlSampleValue.DATE_VALUE);
+        case Types.TIME:
+            return new SampleValue<>(Time.class, SqlSampleValue.TIME_VALUE);
+        case Types.TIMESTAMP:
+        case Types.TIMESTAMP_WITH_TIMEZONE:
+        case Types.TIME_WITH_TIMEZONE:
+            return new SampleValue<>(Timestamp.class, SqlSampleValue.TIMESTAMP_VALUE);
+        case Types.DECIMAL:
+        case Types.NUMERIC:
+            return new SampleValue<>(BigDecimal.class, SqlSampleValue.DECIMAL_VALUE);
+        case Types.FLOAT:
+        case Types.DOUBLE:
+            return new SampleValue<>(Double.class, SqlSampleValue.DOUBLE_VALUE);
+        case Types.REAL:
+            return new SampleValue<>(Float.class, SqlSampleValue.FLOAT_VALUE);
+        case Types.BIGINT:
+            return new SampleValue<>(Long.class, SqlSampleValue.LONG_VALUE);
+        case Types.SMALLINT:
+        case Types.INTEGER:
+        case Types.TINYINT:
+            return new SampleValue<>(Integer.class, SqlSampleValue.INTEGER_VALUE);
+        case Types.NULL:
             return null;
-        case DISTINCT:
-        case JAVA_OBJECT:
-        case OTHER:
-        case REF:
-        case REF_CURSOR:
-        case STRUCT:
+        case Types.DISTINCT:
+        case Types.JAVA_OBJECT:
+        case Types.OTHER:
+        case Types.REF:
+        case Types.REF_CURSOR:
+        case Types.STRUCT:
         default:
-            return new TypeValue<>(String.class, SqlSampleValue.STRING_VALUE);
+            return new SampleValue<>(String.class, SqlSampleValue.STRING_VALUE);
         }
     }
 

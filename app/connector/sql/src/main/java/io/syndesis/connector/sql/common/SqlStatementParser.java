@@ -16,14 +16,22 @@
 package io.syndesis.connector.sql.common;
 
 import java.sql.Connection;
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.SqlParameter;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterUtils;
+import org.springframework.jdbc.core.namedparam.ParsedSql;
 
 public class SqlStatementParser {
 
@@ -41,269 +49,122 @@ public class SqlStatementParser {
      * table name
      */
     private final Connection connection;
-    private String schema;
-    private DbMetaDataHelper dbHelper;
-    private final SqlStatementMetaData statementInfo;
-    private List<String> sqlArray = new ArrayList<>();
-    private final List<String> sqlArrayUpperCase = new ArrayList<>();
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlStatementParser.class);
 
-    public SqlStatementParser(Connection connection, String sql) throws SQLException {
+    public SqlStatementParser(Connection connection) throws SQLException {
         super();
-        statementInfo = new SqlStatementMetaData(sql.trim());
         this.connection = connection;
-        dbHelper = new DbMetaDataHelper(connection);
-        getSchema(null);
     }
 
-    public SqlStatementParser(Connection connection, String schema, String sql) throws SQLException {
-        super();
-        statementInfo = new SqlStatementMetaData(sql.trim());
-        this.connection = connection;
-        dbHelper = new DbMetaDataHelper(connection);
-        this.schema = getSchema(schema);
-    }
+    public SqlStatementMetaData parse(String camelSql) throws SQLException {
 
-    public SqlStatementMetaData parseSelectOnly() throws SQLException {
+        SqlStatementMetaData statementInfo = new SqlStatementMetaData(camelSql.trim());
+        ParsedSql parsedSql = NamedParameterUtils.parseSqlStatement(statementInfo.getSqlStatement());
+        List<SqlParameter> params = NamedParameterUtils.buildSqlParameterList(parsedSql, new MapSqlParameterSource());
+        String sql = NamedParameterUtils.parseSqlStatementIntoString(statementInfo.getSqlStatement());
 
-        statementInfo.setTablesInSchema(dbHelper.fetchTables(null, schema, null));
-        sqlArray = splitSqlStatement(statementInfo.getSqlStatement());
-        for (String word : sqlArray) {
-            sqlArrayUpperCase.add(word.toUpperCase(Locale.US));
-        }
+        PreparedStatement prepStmt = null;
+        try {
 
-        if ("SELECT".equals(sqlArrayUpperCase.get(0))) {
-            parseSelect();
-            if (! statementInfo.getInParams().isEmpty()) {
-                throw new SQLException("Your statement is invalid and cannot contain input parameters");
+            //Set InParams
+            prepStmt = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            statementInfo.setInParams(findInputParamsInPrepStmt(prepStmt, params));
+
+            //Set OutParams
+            if (sql.toUpperCase(Locale.US).startsWith("SELECT")) {
+                statementInfo.setOutParams(findOutputColumnsInSelect(prepStmt, statementInfo.getInParams()));
             }
-        } else {
-            throw new SQLException("Your statement is invalid and should start with SELECT");
+            if (sql.toUpperCase(Locale.US).startsWith("INSERT")) {
+                boolean isAutoCommit = connection.getAutoCommit();
+                try {
+                    connection.setAutoCommit(false);
+                    statementInfo.setOutParams(findGeneratedKeyColumnInInsert(prepStmt, statementInfo.getInParams()));
+                    if (statementInfo.getOutParams().size()>0) {
+                        statementInfo.setHasGeneratedKeys(true);
+                    }
+                } finally {
+                    try {
+                        connection.rollback();
+                    } catch (Exception e) {
+                        LOGGER.warn(e.getMessage());
+                    }
+                    connection.setAutoCommit(isAutoCommit);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
+            throw e;
+        } finally {
+            if (prepStmt != null) {
+                prepStmt.close();
+            }
         }
         return statementInfo;
     }
 
-    public SqlStatementMetaData parse() throws SQLException {
-
-        statementInfo.setTablesInSchema(dbHelper.fetchTables(null, schema, null));
-        sqlArray = splitSqlStatement(statementInfo.getSqlStatement());
-        for (String word : sqlArray) {
-            sqlArrayUpperCase.add(word.toUpperCase(Locale.US));
+    private List<SqlParam> findInputParamsInPrepStmt(PreparedStatement prepStmt, List<SqlParameter> params) throws SQLException {
+        List<SqlParam> list = new ArrayList<>();
+        if (!params.isEmpty()) {
+            try {
+                prepStmt.execute();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            for (int i=0; i<params.size();i++) {
+                String name = params.get(i).getName();
+                if (name.startsWith("#")) {
+                    name = name.substring(1);
+                }
+                ParameterMetaData md = prepStmt.getParameterMetaData();
+                String name1 = prepStmt.getParameterMetaData().getParameterClassName(i+1);
+                String name2 = prepStmt.getParameterMetaData().getParameterTypeName(i+1);
+                int jdbcType = prepStmt.getParameterMetaData().getParameterType(i+1);
+                list.add(new SqlParam(name, jdbcType));
+            }
         }
-
-        switch (sqlArrayUpperCase.get(0)) {
-            case "INSERT":
-                parseInsert();
-                break;
-            case "UPDATE":
-                parseUpdate();
-                break;
-            case "DELETE":
-                parseDelete();
-                break;
-            case "SELECT":
-                parseSelect();
-                break;
-            default:
-                throw new SQLException("Your statement is invalid and should start with INSERT, UPDATE, SELECT or DELETE");
-        }
-        return statementInfo;
+        return list;
     }
 
-    private String getSchema(String userSchema) {
-        //if user set, then use that
-        if (userSchema != null) {
-            return userSchema;
+    private void setSomeSampleValuesonPrepStmt(PreparedStatement prepStmt, List<SqlParam> inParams) throws SQLException {
+        for (int i=1; i<=inParams.size(); i++) {
+            SqlParam sqlParam = inParams.get(i-1);
+            //JDBCType.valueOf(sqlParam.getJdbcType()).
+            prepStmt.setObject(i, sqlParam.getSampleValue().getValue(), sqlParam.getJdbcType());
         }
+    }
+
+    private List<SqlParam> findOutputColumnsInSelect(PreparedStatement prepStmt, List<SqlParam> inParams) throws SQLException {
+        List<SqlParam> list = new ArrayList<>();
+        setSomeSampleValuesonPrepStmt(prepStmt, inParams);
+        ResultSet rs = null;
         try {
-            //try grabbing from the connection, not all drivers support this
-            return connection.getSchema();
-        } catch (SQLException e) {
-            LOGGER.error(e.getMessage(),e);
-        } catch (AbstractMethodError e) {
-            if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug(e.getMessage());
+            rs = prepStmt.executeQuery();
+            ResultSetMetaData md = rs.getMetaData();
+            for (int column=1; column<=md.getColumnCount(); column++) {
+                list.add(new SqlParam(
+                        md.getColumnName(column),
+                        md.getColumnType(column)));
+            }
+        } finally {
+            if (rs!=null) {
+                rs.close();
             }
         }
-        try {
-            //finally try setting reasonable default
-            DbMetaDataHelper dbHelper = new DbMetaDataHelper(connection);
-            return dbHelper.getDefaultSchema(connection.getMetaData().getUserName());
-        } catch (SQLException e) {
-            LOGGER.error(e.getMessage(),e);
-        }
-        return null;
+        return list;
     }
 
-    private void parseInsert() throws SQLException {
-        statementInfo.setStatementType(StatementType.INSERT);
-        String tableNameInsert = statementInfo.addTable(sqlArrayUpperCase.get(2));
-        if (! statementInfo.getTablesInSchema().contains(tableNameInsert)) {
-            throw new SQLException(String.format("Table '%s' does not exist", tableNameInsert));
-        }
-        if (statementInfo.hasInputParams()) {
-            List<SqlParam> inputParams = findInsertParams(tableNameInsert);
-            if (inputParams.get(0).getColumn() != null) {
-                statementInfo.setInParams(
-                        dbHelper.getJDBCInfoByColumnNames(
-                                null, schema, tableNameInsert, inputParams));
-            } else {
-                statementInfo.setInParams(
-                        dbHelper.getJDBCInfoByColumnOrder(
-                                null, schema, tableNameInsert, inputParams));
+    private List<SqlParam> findGeneratedKeyColumnInInsert(PreparedStatement prepStmt, List<SqlParam> inParams) throws SQLException {
+        List<SqlParam> list = new ArrayList<>();
+        setSomeSampleValuesonPrepStmt(prepStmt, inParams);
+        if (prepStmt.executeUpdate() > 0 ) {
+            ResultSet rs = prepStmt.getGeneratedKeys();
+            if (rs != null) {
+                ResultSetMetaData md = rs.getMetaData();
+                list.add(new SqlParam(
+                        "GENERATEDKEY",
+                        md.getColumnType(1)));
             }
         }
-        List<SqlParam> autoIncrementParamList = dbHelper.getAutoIncrementColumnList(
-                null, schema, tableNameInsert);
-        if (! autoIncrementParamList.isEmpty()) {
-            statementInfo.setOutParams(autoIncrementParamList);
-            //SQL only supports one auto increment column
-            statementInfo.setAutoIncrementColumnName(autoIncrementParamList.get(0).getName());
-        }
+        return list;
     }
-
-    private void parseUpdate() throws SQLException  {
-        statementInfo.setStatementType(StatementType.UPDATE);
-        String tableNameUpdate = statementInfo.addTable(sqlArrayUpperCase.get(1));
-        if (! statementInfo.getTablesInSchema().contains(tableNameUpdate)) {
-            throw new SQLException(String.format("Table '%s' does not exist", tableNameUpdate));
-        }
-        if (statementInfo.hasInputParams()) {
-            List<SqlParam> inputParams = findInputParams(Collections.emptyList());
-            statementInfo.setInParams(
-                    dbHelper.getJDBCInfoByColumnNames(
-                            null, schema, tableNameUpdate, inputParams));
-        }
-    }
-
-    private void parseDelete() throws SQLException  {
-        statementInfo.setStatementType(StatementType.DELETE);
-        String tableNameDelete = statementInfo.addTable(sqlArrayUpperCase.get(2));
-        if (! statementInfo.getTablesInSchema().contains(tableNameDelete)) {
-            throw new SQLException(String.format("Table '%s' does not exist", tableNameDelete));
-        }
-        if (statementInfo.hasInputParams()) {
-            List<SqlParam> inputParams = findInputParams(Collections.emptyList());
-            statementInfo.setInParams(
-                    dbHelper.getJDBCInfoByColumnNames(
-                            null, schema, tableNameDelete, inputParams));
-        }
-    }
-
-    private void parseSelect() throws SQLException  {
-        statementInfo.setStatementType(StatementType.SELECT);
-        List<String> tableNamesSelect = findTablesInSelectStatement();
-        if (! tableNamesSelect.isEmpty()) {
-            for (String tableNameSelect : tableNamesSelect) {
-                if (! statementInfo.getTablesInSchema().contains(tableNameSelect)) {
-                    throw new SQLException(String.format("Table '%s' does not exist", tableNameSelect));
-                }
-            }
-        }
-        if (statementInfo.hasInputParams()) {
-            List<SqlParam> inputParams = findInputParams(Collections.emptyList());
-            statementInfo.setTableNames(findTablesInSelectStatement());
-            statementInfo.setInParams(
-                    dbHelper.getJDBCInfoByColumnNames(
-                            null, schema, statementInfo.getTableNames().get(0), inputParams));
-        }
-        statementInfo.setOutParams(dbHelper.getOutputColumnInfo(statementInfo.getDefaultedSqlStatement()));
-    }
-
-    List<String> splitSqlStatement(String sql) {
-        List<String> sqlArray = new ArrayList<>();
-        String[] segments = sql.split("=|\\,|\\s|\\(|\\)", -1);
-        for (String segment : segments) {
-            if (!"".equals(segment)) {
-                sqlArray.add(segment);
-            }
-        }
-        return sqlArray;
-    }
-
-    /**
-     * INSERT INTO table_name (column1, column2, column3, ...)
-     * VALUES (value1, value2, value3, ...);
-     *
-     * INSERT INTO table_name
-     * VALUES (value1, value2, value3, ...);
-     * @param tableName
-     * @return
-     */
-    List<SqlParam> findInsertParams(String tableName) {
-        boolean isColumnName = false;
-        List<String> columnNames = new ArrayList<>();
-        for (String word: sqlArrayUpperCase) {
-            if ("VALUES".equals(word)) {
-                isColumnName = false;
-            }
-            if (isColumnName) {
-                columnNames.add(word);
-            }
-            if (tableName.equals(word)) {
-                isColumnName = true; //in the next iteration
-            }
-        }
-        int v = sqlArrayUpperCase.indexOf("VALUES") + 1;
-        List<SqlParam> params = Collections.emptyList();
-        if (!columnNames.isEmpty()) {
-            List<String> values = sqlArray.subList(v, v + columnNames.size() );
-            params = findInputParams(values);
-            int paramCounter = 0;
-            for (int i=0; i<columnNames.size(); i++) {
-                if (values.get(i).startsWith(":#")) {
-                    params.get(paramCounter++).setColumn(columnNames.get(i).toUpperCase(Locale.US));
-                }
-            }
-        } else {
-            List<String> values = sqlArray.subList(v, sqlArray.size());
-            params = findInputParams(values);
-        }
-        return params;
-    }
-
-    List<SqlParam> findInputParams(List<String> values) {
-        List<SqlParam> params = new ArrayList<>();
-        int i=0;
-        for (String word: sqlArray) {
-            if (word.startsWith(":#")) {
-                SqlParam param = new SqlParam(word.substring(2));
-                String column = sqlArray.get(i-1);
-                if ("LIKE".equalsIgnoreCase(column)) {
-                    column = sqlArray.get(i-2);
-                }
-                if (column.startsWith(":#") || "VALUES".equalsIgnoreCase(column) || values.contains(column)) {
-                    param.setColumnPos(values.indexOf(word));
-                } else {
-                    param.setColumn(column.toUpperCase(Locale.US));
-                }
-                params.add(param);
-            }
-            i++;
-        }
-        return params;
-    }
-
-    List<String> findTablesInSelectStatement() throws SQLException {
-        boolean isTable = false;
-        List<String> tables = new ArrayList<>();
-        for (String word: sqlArrayUpperCase) {
-            if (! statementInfo.getTablesInSchema().contains(word)) {
-                if (isTable && tables.isEmpty()) {
-                    throw new SQLException(String.format("Table '%s' does not exist", word));
-                }
-                isTable = false;
-            }
-            if (isTable) {
-                tables.add(word);
-            }
-            if ("FROM".equals(word)) {
-                isTable = true; //in the next iteration
-            }
-
-        }
-        return tables;
-    }
-
-
 }

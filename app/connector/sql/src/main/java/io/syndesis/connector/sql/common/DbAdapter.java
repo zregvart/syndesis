@@ -2,6 +2,7 @@ package io.syndesis.connector.sql.common;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Locale;
 
 /*
  * Copyright (C) 2016 Red Hat, Inc.
@@ -31,19 +32,26 @@ public class DbAdapter {
     }
 
     private Db getDb(Connection conn) throws SQLException {
-        DbEnum dbEnum =  DbEnum.fromName(conn.getMetaData().getDatabaseProductName());
-        switch (dbEnum) {
 
-        case APACHE_DERBY:
+        String dbProductName = conn.getMetaData().getDatabaseProductName()
+                .toUpperCase(Locale.US).replaceAll(" ", "_");
+
+        switch (dbProductName) {
+
+        case "APACHE_DERBY":
             return new DbDerby();
-        case MYSQL:
+        case "MYSQL":
             return new DbMysql();
-        case ORACLE:
+        case "ORACLE":
             return new DbOracle();
-        case POSTGRESQL:
+        case "POSTGRESQL":
             return new DbPostgresql();
         default:
             return new DbStandard();
         }
+    }
+
+    public static String getSupportedDatabases() {
+        return "Apache Derby, Mysql, Postgresql, Oracle";
     }
 }

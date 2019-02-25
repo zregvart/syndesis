@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import io.syndesis.common.util.SyndesisServerException;
-import io.syndesis.connector.sql.common.DbMetaDataHelper;
 import io.syndesis.connector.sql.common.SqlStatementMetaData;
 import io.syndesis.connector.sql.common.SqlStatementParser;
 import org.apache.camel.CamelContext;
@@ -43,12 +42,8 @@ public class SqlConnectorMetaDataExtension extends AbstractMetaDataExtension {
 
         if (sqlStatement != null) {
             try (Connection connection = SqlSupport.createConnection(properties)) {
-                DbMetaDataHelper dbHelper = new DbMetaDataHelper(connection);
-                final String defaultSchema = dbHelper.getDefaultSchema(String.valueOf(properties.get("user")));
-                final String schemaPattern = (String) properties.getOrDefault("schema-pattern", defaultSchema);
-                final SqlStatementParser parser = new SqlStatementParser(connection, schemaPattern, sqlStatement);
-                final SqlStatementMetaData sqlStatementMetaData = parseStatement(parser);
-
+                final SqlStatementParser parser = new SqlStatementParser(connection);
+                final SqlStatementMetaData sqlStatementMetaData = parser.parse(sqlStatement);
                 metaData = new DefaultMetaData(null, null, sqlStatementMetaData);
             } catch (final SQLException e) {
                 throw new SyndesisServerException(e.getMessage(),e);
@@ -56,13 +51,5 @@ public class SqlConnectorMetaDataExtension extends AbstractMetaDataExtension {
         }
 
         return Optional.of(metaData);
-    }
-
-    // *********************************
-    // Helpers
-    // *********************************
-
-    private SqlStatementMetaData parseStatement(SqlStatementParser parser) throws SQLException {
-        return parser.parse();
     }
 }

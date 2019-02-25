@@ -23,7 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.syndesis.connector.sql.common.DbEnum;
+import io.syndesis.connector.sql.common.Db;
+import io.syndesis.connector.sql.common.DbAdapter;
 import io.syndesis.connector.sql.common.JSONBeanUtil;
 import io.syndesis.connector.sql.util.SqlConnectorTestSupport;
 import io.syndesis.common.model.integration.Step;
@@ -31,7 +32,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Test;
 
-@SuppressWarnings({"PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert"})
 public class SqlConnectorTest extends SqlConnectorTestSupport {
 
     // **************************
@@ -40,31 +40,18 @@ public class SqlConnectorTest extends SqlConnectorTestSupport {
 
     @Override
     protected void doPreSetup() throws Exception {
+        Db testDb = new DbAdapter(db.connection).getDb();
         try (Statement stmt = db.connection.createStatement()) {
-            String dbProductName = db.connection.getMetaData().getDatabaseProductName();
-            String CREATION_SQL;
-            if (DbEnum.POSTGRESQL.equals(DbEnum.fromName(dbProductName))) {
-                CREATION_SQL = "CREATE TABLE ADDRESS ("
-                        + "ID SERIAL PRIMARY KEY, "
-                        + "street VARCHAR(255), "
-                        + "nummer INTEGER)";
-            } else if (DbEnum.MYSQL.equals(DbEnum.fromName(dbProductName))) {
-                CREATION_SQL = "CREATE TABLE ADDRESS ("
-                        + "ID INT NOT NULL AUTO_INCREMENT PRIMARY KEY, "
-                        + "street VARCHAR(255), "
-                        + "nummer INTEGER)";
-            } else if (DbEnum.APACHE_DERBY.equals(DbEnum.fromName(dbProductName))) {
-                CREATION_SQL = "CREATE TABLE ADDRESS ("
-                        + "ID INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), "
-                        + "street VARCHAR(255), "
-                        + "nummer INTEGER)";
-            } else {
-                CREATION_SQL = "CREATE TABLE ADDRESS ("
-                        + "ID NUMBER GENERATED ALWAYS AS IDENTITY, "
-                        + "street VARCHAR(255), "
-                        + "nummer INTEGER)";
+            String CREATION_SQL = "CREATE TABLE ADDRESS ("
+                    + "ID " + testDb.getAutoIncrementGrammar() + ", "
+                    + "street VARCHAR(255), "
+                    + "nummer INTEGER)";
+            try {
+                stmt.executeUpdate(CREATION_SQL);
+            } catch (SQLException e) {
+                e.printStackTrace();
+                throw e;
             }
-            stmt.executeUpdate(CREATION_SQL);
         }
     }
 
@@ -103,15 +90,14 @@ public class SqlConnectorTest extends SqlConnectorTestSupport {
         String body = JSONBeanUtil.toJSONBean(values);
 
         String result = template.requestBody("direct:start", body, String.class);
-        Assertions.assertThat(result).isEqualTo("[{\"ID\":1}]");
-        System.out.println(result);
+        Assertions.assertThat(result).startsWith("[{\"GENERATEDKEY\":");
 
         try (Statement stmt = db.connection.createStatement()) {
             stmt.execute("SELECT * FROM ADDRESS");
             ResultSet resultSet = stmt.getResultSet();
             resultSet.next();
-            System.out.println(resultSet.getInt(1) + " " + resultSet.getString(2) + " " + resultSet.getInt(3));
-            Assertions.assertThat(resultSet.getInt(1)).isEqualTo(1);
+            //System.out.println(resultSet.getInt(1) + " " + resultSet.getString(2) + " " + resultSet.getInt(3));
+            Assertions.assertThat(resultSet.getInt(1)).isBetween(1, 3);
             Assertions.assertThat(resultSet.getString(2)).isEqualTo("LaborInVain");
             Assertions.assertThat(resultSet.getInt(3)).isEqualTo(14);
         }

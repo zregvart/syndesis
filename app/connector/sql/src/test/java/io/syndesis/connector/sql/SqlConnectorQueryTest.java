@@ -23,26 +23,31 @@ import java.util.Properties;
 
 import io.syndesis.common.model.integration.Step;
 import io.syndesis.connector.sql.common.JSONBeanUtil;
+import io.syndesis.connector.sql.common.SqlStatementMetaData;
+import io.syndesis.connector.sql.common.SqlStatementParser;
 import io.syndesis.connector.sql.util.SqlConnectorTestSupport;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Test;
 
-@SuppressWarnings({"PMD.SignatureDeclareThrowsException", "PMD.JUnitTestsShouldIncludeAssert"})
 public class SqlConnectorQueryTest extends SqlConnectorTestSupport {
 
     // **************************
     // Set up
     // **************************
+    static String CAMEL_SQL = "select * FROM ADDRESS";
 
     @Override
     protected void doPreSetup() throws Exception {
         try (Statement stmt = db.connection.createStatement()) {
             //stmt.executeUpdate("DROP TABLE ADDRESS");
-            stmt.executeUpdate("CREATE TABLE ADDRESS (street VARCHAR(255), number INTEGER)");
+            stmt.executeUpdate("CREATE TABLE ADDRESS (STREET VARCHAR(255), NUMMER INTEGER)");
             stmt.executeUpdate("INSERT INTO ADDRESS VALUES ('East Davie Street', 100)");
             stmt.executeUpdate("INSERT INTO ADDRESS VALUES ('Am Treptower Park', 75)");
             stmt.executeUpdate("INSERT INTO ADDRESS VALUES ('Werner-von-Siemens-Ring', 14)");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -61,7 +66,7 @@ public class SqlConnectorQueryTest extends SqlConnectorTestSupport {
                 builder -> builder.putConfiguredProperty("name", "start")),
             newSqlEndpointStep(
                 "sql-connector",
-                builder -> builder.putConfiguredProperty("query", "SELECT * FROM ADDRESS")),
+                builder -> builder.putConfiguredProperty("query", CAMEL_SQL)),
             newSimpleEndpointStep(
                 "log",
                 builder -> builder.putConfiguredProperty("loggerName", "test"))
@@ -73,21 +78,27 @@ public class SqlConnectorQueryTest extends SqlConnectorTestSupport {
     // **************************
 
     @Test
-    public void sqlConnectorQueryTest() {
+    public void sqlConnectorQueryTest() throws SQLException {
         List<?> results = template.requestBody("direct:start", null, List.class);
 
+        SqlStatementParser parser = new SqlStatementParser(db.connection);
+        SqlStatementMetaData md = parser.parse(CAMEL_SQL);
+        
         Assertions.assertThat(results).hasSize(3);
         Properties rowEntry = JSONBeanUtil.parsePropertiesFromJSONBean(results.get(0).toString());
+        
         Assertions.assertThat(rowEntry).hasSize(2);
-        Assertions.assertThat(rowEntry.get("NUMBER")).isEqualTo("100");
-        Assertions.assertThat(rowEntry.get("STREET")).isEqualTo("East Davie Street");
-
+        Assertions.assertThat(rowEntry.getProperty(md.getOutParams().get(0).getName())).isEqualTo("East Davie Street");
+        Assertions.assertThat(rowEntry.getProperty(md.getOutParams().get(1).getName())).isEqualTo("100");
+        
         rowEntry = JSONBeanUtil.parsePropertiesFromJSONBean(results.get(1).toString());
-        Assertions.assertThat(rowEntry.get("NUMBER")).isEqualTo("75");
-        Assertions.assertThat(rowEntry.get("STREET")).isEqualTo("Am Treptower Park");
-
+        Assertions.assertThat(rowEntry.getProperty(md.getOutParams().get(0).getName())).isEqualTo("Am Treptower Park");
+        Assertions.assertThat(rowEntry.getProperty(md.getOutParams().get(1).getName())).isEqualTo("75");
+        
         rowEntry = JSONBeanUtil.parsePropertiesFromJSONBean(results.get(2).toString());
-        Assertions.assertThat(rowEntry.get("NUMBER")).isEqualTo("14");
-        Assertions.assertThat(rowEntry.get("STREET")).isEqualTo("Werner-von-Siemens-Ring");
+        Assertions.assertThat(rowEntry.getProperty(md.getOutParams().get(0).getName())).isEqualTo("Werner-von-Siemens-Ring");
+        Assertions.assertThat(rowEntry.getProperty(md.getOutParams().get(1).getName())).isEqualTo("14");
+
     }
+    
 }

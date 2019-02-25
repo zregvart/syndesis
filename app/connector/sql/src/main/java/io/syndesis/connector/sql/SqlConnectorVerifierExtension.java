@@ -17,12 +17,9 @@ package io.syndesis.connector.sql;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import io.syndesis.connector.sql.common.DbEnum;
 import org.apache.camel.CamelContext;
 import org.apache.camel.component.extension.verifier.DefaultComponentVerifierExtension;
 import org.apache.camel.component.extension.verifier.ResultBuilder;
@@ -30,6 +27,8 @@ import org.apache.camel.component.extension.verifier.ResultErrorBuilder;
 import org.apache.camel.component.extension.verifier.ResultErrorHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.syndesis.connector.sql.common.DbAdapter;
 
 public class SqlConnectorVerifierExtension extends DefaultComponentVerifierExtension {
     private static final Logger LOG = LoggerFactory.getLogger(SqlConnectorVerifierExtension.class);
@@ -95,8 +94,8 @@ public class SqlConnectorVerifierExtension extends DefaultComponentVerifierExten
     }
 
     private static void unsupportedDatabase(ResultBuilder builder) {
-        String supportedDatabases = Arrays.stream(DbEnum.values()).map(DbEnum::name).collect(Collectors.joining(","));
-        String msg = "Supported Databases are [" + supportedDatabases + "]";
+
+        String msg = "Supported Databases are [" + DbAdapter.getSupportedDatabases() + "]";
 
         builder.error(
             ResultErrorBuilder.withCodeAndDescription(VerificationError.StandardCode.UNSUPPORTED, msg).build()

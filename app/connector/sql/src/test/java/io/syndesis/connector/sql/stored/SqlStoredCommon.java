@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import io.syndesis.connector.sql.SqlSupport;
-import io.syndesis.connector.sql.common.DbEnum;
 import io.syndesis.connector.sql.common.stored.StoredProcedureMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +44,7 @@ public class SqlStoredCommon {
             Map<String,StoredProcedureMetadata> storedProcedures = SqlSupport.getStoredProcedures(parameters);
 
             if (!storedProcedures.keySet().contains("DEMO_ADD")
-                    && DbEnum.APACHE_DERBY.equals(DbEnum.fromName(dbProductName))) {
+                    && "APACHE DERBY".equalsIgnoreCase(dbProductName)) {
                 try (Statement stmt = connection.createStatement()) {
                     stmt.execute(SampleStoredProcedures.DERBY_DEMO_ADD_SQL);
                     LOGGER.info("Created procedure {}", SampleStoredProcedures.DERBY_DEMO_ADD_SQL);
@@ -55,7 +54,7 @@ public class SqlStoredCommon {
                 }
             }
             if (!storedProcedures.keySet().contains("DEMO_OUT")
-                    && DbEnum.APACHE_DERBY.equals(DbEnum.fromName(dbProductName))) {
+                    && "APACHE DERBY".equalsIgnoreCase(dbProductName)) {
                 try (Statement stmt = connection.createStatement()) {
                     //Create procedure
                     stmt.execute(SampleStoredProcedures.DERBY_DEMO_OUT_SQL);

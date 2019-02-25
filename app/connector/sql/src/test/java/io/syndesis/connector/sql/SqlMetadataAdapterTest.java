@@ -23,12 +23,12 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 
 import com.fasterxml.jackson.databind.ObjectWriter;
-import io.syndesis.connector.sql.common.DbEnum;
 import io.syndesis.connector.sql.stored.SqlStoredConnectorMetaDataExtension;
 import io.syndesis.common.util.Json;
 import io.syndesis.connector.support.verifier.api.SyndesisMetadata;
@@ -74,8 +74,8 @@ public class SqlMetadataAdapterTest {
             String url      = String.valueOf(props.get("sql-connector.url"));
 
             conn = DriverManager.getConnection(url,user,password);
-            String dbProductName = conn.getMetaData().getDatabaseProductName();
-            if (DbEnum.APACHE_DERBY.equals(DbEnum.fromName(dbProductName))) {
+            String dbProductName = conn.getMetaData().getDatabaseProductName().toUpperCase(Locale.US);
+            if ("APACHE DERBY".equals(dbProductName)) {
                 try (Statement stmt = conn.createStatement()) {
                     stmt.execute(DERBY_DEMO_OUT_SQL);
                     stmt.execute(DERBY_DEMO_ADD_SQL);
@@ -118,7 +118,8 @@ public class SqlMetadataAdapterTest {
         String expectedMetadata = IOUtils.toString(this.getClass().getResource("/sql/name_sql_metadata.json"), StandardCharsets.UTF_8).trim();
         ObjectWriter writer = Json.writer();
         String actualMetadata = writer.with(writer.getConfig().getDefaultPrettyPrinter()).writeValueAsString(syndesisMetaData2);
-        assertEquals(expectedMetadata, actualMetadata, JSONCompareMode.STRICT);
+        assertEquals(expectedMetadata.toLowerCase(Locale.US),
+                       actualMetadata.toLowerCase(Locale.US), JSONCompareMode.STRICT);
 
     }
 
@@ -138,8 +139,8 @@ public class SqlMetadataAdapterTest {
         String expectedMetadata = IOUtils.toString(this.getClass().getResource("/sql/name_sql_no_param_metadata.json"), StandardCharsets.UTF_8).trim();
         ObjectWriter writer = Json.writer();
         String actualMetadata = writer.with(writer.getConfig().getDefaultPrettyPrinter()).writeValueAsString(syndesisMetaData2);
-        assertEquals(expectedMetadata, actualMetadata, JSONCompareMode.STRICT);
-
+        assertEquals(expectedMetadata.toLowerCase(Locale.US),
+                       actualMetadata.toLowerCase(Locale.US), JSONCompareMode.STRICT);
     }
 
     @Test

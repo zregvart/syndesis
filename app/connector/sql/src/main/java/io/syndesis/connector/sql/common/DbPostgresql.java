@@ -36,4 +36,9 @@ public class DbPostgresql extends DbStandard {
             final String procedurePattern) throws SQLException {
         return meta.getFunctions(catalog, schemaPattern, procedurePattern);
     }
+
+    @Override
+    public String getAutoIncrementGrammar() {
+        return "SERIAL PRIMARY KEY";
+    }
 }

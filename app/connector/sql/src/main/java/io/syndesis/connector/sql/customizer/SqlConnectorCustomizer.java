@@ -39,7 +39,6 @@ public final class SqlConnectorCustomizer implements ComponentProxyCustomizer {
     private Map<String, Object> options;
     private Map<String, Integer> jdbcTypeMap;
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlConnectorCustomizer.class);
-    private String autoIncrementColumnName;
     private boolean isRetrieveGeneratedKeys;
 
     @Override
@@ -65,7 +64,7 @@ public final class SqlConnectorCustomizer implements ComponentProxyCustomizer {
         final Message in = exchange.getIn();
         in.setBody(JSONBeanUtil.toJSONBeans(in));
         if (isRetrieveGeneratedKeys) {
-            in.setBody(JSONBeanUtil.toJSONBeansFromHeader(in, autoIncrementColumnName));
+            in.setBody(JSONBeanUtil.toJSONBeansFromHeader(in, "GENERATEDKEY"));
         }
     }
 
@@ -77,13 +76,12 @@ public final class SqlConnectorCustomizer implements ComponentProxyCustomizer {
             final Map<String, Integer> tmpMap = new HashMap<>();
             try (Connection connection = dataSource.getConnection()) {
 
-                SqlStatementMetaData statementInfo = new SqlStatementParser(connection, null, sql).parse();
+                SqlStatementMetaData statementInfo = new SqlStatementParser(connection).parse(sql);
                 for (SqlParam sqlParam: statementInfo.getInParams()) {
-                    tmpMap.put(sqlParam.getName(), sqlParam.getJdbcType().getVendorTypeNumber());
+                    tmpMap.put(sqlParam.getName(), sqlParam.getJdbcType());
                 }
-                if (statementInfo.getAutoIncrementColumnName() != null) {
+                if (statementInfo.isHasGeneratedKeys()) {
                     isRetrieveGeneratedKeys = true;
-                    autoIncrementColumnName = statementInfo.getAutoIncrementColumnName();
                 }
             } catch (SQLException e){
                 LOGGER.error(e.getMessage(),e);
