@@ -22,6 +22,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -52,7 +53,6 @@ public class SqlStatementParser {
     private static final Logger LOGGER = LoggerFactory.getLogger(SqlStatementParser.class);
 
     public SqlStatementParser(Connection connection) throws SQLException {
-        super();
         this.connection = connection;
     }
 
@@ -105,57 +105,36 @@ public class SqlStatementParser {
     private List<SqlParam> findInputParamsInPrepStmt(PreparedStatement prepStmt, List<SqlParameter> params) throws SQLException {
         List<SqlParam> list = new ArrayList<>();
         if (!params.isEmpty()) {
-            try {
-                prepStmt.execute();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
             for (int i=0; i<params.size();i++) {
                 String name = params.get(i).getName();
                 if (name.startsWith("#")) {
                     name = name.substring(1);
                 }
                 ParameterMetaData md = prepStmt.getParameterMetaData();
-                String name1 = prepStmt.getParameterMetaData().getParameterClassName(i+1);
-                String name2 = prepStmt.getParameterMetaData().getParameterTypeName(i+1);
-                int jdbcType = prepStmt.getParameterMetaData().getParameterType(i+1);
-                list.add(new SqlParam(name, jdbcType));
+                try {
+                    int jdbcType = prepStmt.getParameterMetaData().getParameterType(i+1);
+                    list.add(new SqlParam(name, jdbcType));
+                } catch (SQLException ignored) {
+                    list.add(new SqlParam(name, Types.VARCHAR));
+                }
             }
         }
         return list;
     }
 
-    private void setSomeSampleValuesonPrepStmt(PreparedStatement prepStmt, List<SqlParam> inParams) throws SQLException {
-        for (int i=1; i<=inParams.size(); i++) {
-            SqlParam sqlParam = inParams.get(i-1);
-            //JDBCType.valueOf(sqlParam.getJdbcType()).
-            prepStmt.setObject(i, sqlParam.getSampleValue().getValue(), sqlParam.getJdbcType());
-        }
-    }
-
     private List<SqlParam> findOutputColumnsInSelect(PreparedStatement prepStmt, List<SqlParam> inParams) throws SQLException {
         List<SqlParam> list = new ArrayList<>();
-        setSomeSampleValuesonPrepStmt(prepStmt, inParams);
-        ResultSet rs = null;
-        try {
-            rs = prepStmt.executeQuery();
-            ResultSetMetaData md = rs.getMetaData();
-            for (int column=1; column<=md.getColumnCount(); column++) {
-                list.add(new SqlParam(
-                        md.getColumnName(column),
-                        md.getColumnType(column)));
-            }
-        } finally {
-            if (rs!=null) {
-                rs.close();
-            }
+        ResultSetMetaData md = prepStmt.getMetaData();
+        for (int column=1; column<=md.getColumnCount(); column++) {
+            list.add(new SqlParam(
+                    md.getColumnName(column),
+                    md.getColumnType(column)));
         }
         return list;
     }
 
     private List<SqlParam> findGeneratedKeyColumnInInsert(PreparedStatement prepStmt, List<SqlParam> inParams) throws SQLException {
         List<SqlParam> list = new ArrayList<>();
-        setSomeSampleValuesonPrepStmt(prepStmt, inParams);
         if (prepStmt.executeUpdate() > 0 ) {
             ResultSet rs = prepStmt.getGeneratedKeys();
             if (rs != null) {
