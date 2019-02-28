@@ -74,7 +74,12 @@ public class MetadataIT {
     @SuppressWarnings("resource")
     @Parameters
     public static Collection<Object> databaseContainerImages() {
-        return Arrays.asList(new MySQLContainer<>(), new PostgreSQLContainer<>(), new MariaDBContainer<>());
+        return Arrays.asList(new MySQLContainer() {
+            @Override
+            public String getDriverClassName() {
+                return "com.mysql.cj.jdbc.Driver";
+            }
+        }, new PostgreSQLContainer<>(), new MariaDBContainer<>(), new DerbyContainer());
     }
 
     /**
@@ -85,8 +90,17 @@ public class MetadataIT {
     static int fuzzyInParameters(final SqlParam left, final SqlParam right) {
         final boolean nameEqualsKinda = left.getName().compareToIgnoreCase(right.getName()) == 0;
 
-        final boolean typeEqualsKinda = left.getJdbcType() == right.getJdbcType() ||
-            left.getJdbcType() == Types.VARCHAR || right.getJdbcType() == Types.VARCHAR;
+        // exact match
+        final boolean typesAreEqual = left.getJdbcType() == right.getJdbcType();
+
+        // at least one type is VARCHAR, some implementations return VARCHAR for
+        // any type (looking at you MySql & MariaDB)
+        final boolean isVarchar = left.getJdbcType() == Types.VARCHAR || right.getJdbcType() == Types.VARCHAR;
+
+        // in the same class of numeric types
+        final boolean typesAreNumeric = in(left.getJdbcType(), right.getJdbcType(), Types.NUMERIC, Types.DECIMAL);
+
+        final boolean typeEqualsKinda = typesAreEqual || isVarchar || typesAreNumeric;
 
         if (nameEqualsKinda && typeEqualsKinda) {
             return 0;
@@ -113,5 +127,14 @@ public class MetadataIT {
         }
 
         return left.getName().compareTo(right.getName());
+    }
+
+    static boolean in(final int left, final int right, final int... kindaEqualTypes) {
+        Arrays.sort(kindaEqualTypes);
+
+        final int foundLeft = Arrays.binarySearch(kindaEqualTypes, left);
+        final int foundRight = Arrays.binarySearch(kindaEqualTypes, right);
+
+        return foundLeft >= 0 && foundRight >= 0;
     }
 }

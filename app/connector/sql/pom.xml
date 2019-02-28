@@ -115,7 +115,8 @@
     <!--  supported drivers -->
     <dependency>
       <groupId>org.apache.derby</groupId>
-      <artifactId>derby</artifactId>
+      <artifactId>derbyclient</artifactId>
+      <version>10.14.2.0</version>
       <scope>runtime</scope>
     </dependency>
     <dependency>
@@ -190,6 +191,7 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
+      <version>unspecified</version>
       <scope>test</scope>
     </dependency>
     <dependency>
