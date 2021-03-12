@@ -353,6 +353,10 @@
             <version>1.6</version>
             <configuration>
               <skip>false</skip>
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
             </configuration>
             <executions>
               <execution>
