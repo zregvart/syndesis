@@ -13,6 +13,7 @@ import (
 )
 
 func main() {
+	fmt.Println("Hello world!")
 	rand.Seed(time.Now().UTC().UnixNano())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Cancel ctx as soon as main returns
