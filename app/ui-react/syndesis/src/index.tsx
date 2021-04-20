@@ -32,7 +32,7 @@ ReactDOM.render(
           <WithLoader
             loading={loading}
             error={error}
-            loaderChildren={<span />}
+            loaderChildren={<span/>}
             errorChildren={
               <Translation ns={['shared']}>
                 {t => (
@@ -123,8 +123,8 @@ ReactDOM.render(
       </WithConfig>
     </I18nextProvider>
   </Router>,
-  document.getElementById('root') as HTMLElement
+  document.getElementById('root') as HTMLElement,
 );
 
 unregister();
-alert('hello world');
+alert('hello world')
