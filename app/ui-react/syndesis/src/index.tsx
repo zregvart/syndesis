@@ -32,7 +32,7 @@ ReactDOM.render(
           <WithLoader
             loading={loading}
             error={error}
-            loaderChildren={<span/>}
+            loaderChildren={<span />}
             errorChildren={
               <Translation ns={['shared']}>
                 {t => (
@@ -127,3 +127,4 @@ ReactDOM.render(
 );
 
 unregister();
+alert('hello world');
