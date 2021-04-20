@@ -12,3 +12,5 @@ include::connecting/master.adoc[offsetlevel=+1]
 include::developing_extensions/master.adoc[offsetlevel=+1]
 
 include::managing_environments/master.adoc[offsetlevel=+1]
+
+hello world!
