@@ -103,7 +103,7 @@
     "cp-cli": "2.0.0",
     "ng-packagr": "4.7.1",
     "ts-node": "8.0.2",
-    "tsickle": "0.34.3",
+    "tsickle": "0.39.1",
     "tslib": "1.9.3",
     "typescript": "3.2.4"
   }
