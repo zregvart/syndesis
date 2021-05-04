@@ -16,7 +16,7 @@
     "@patternfly/react-icons": "^3.14.42",
     "@patternfly/react-styles": "^3.6.26",
     "@patternfly/react-table": "^2.25.6",
-    "@patternfly/react-tokens": "^2.7.25",
+    "@patternfly/react-tokens": "^4.11.3",
     "@testing-library/jest-dom": "^4.0.0",
     "@testing-library/react": "^9.3.2",
     "@types/expect": "^24.3.0",
