@@ -19,7 +19,7 @@ import io.syndesis.common.model.api.APISummary;
 import io.syndesis.common.model.integration.Integration;
 
 /**
- * This is a facade for API related operations. TEST
+ * This is a facade for API related operations.
  */
 public interface APIGenerator {
 
