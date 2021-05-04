@@ -260,7 +260,7 @@ github.com/openshift/api/pkg/serialization
 github.com/openshift/api/project/v1
 github.com/openshift/api/route/v1
 github.com/openshift/api/template/v1
-# github.com/operator-framework/api v0.5.1
+# github.com/operator-framework/api v0.8.0
 ## explicit
 github.com/operator-framework/api/pkg/lib/version
 github.com/operator-framework/api/pkg/operators
@@ -799,7 +799,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# sigs.k8s.io/controller-runtime v0.7.0 => sigs.k8s.io/controller-runtime v0.7.0
+# sigs.k8s.io/controller-runtime v0.8.0 => sigs.k8s.io/controller-runtime v0.7.0
 ## explicit
 sigs.k8s.io/controller-runtime/pkg/cache
 sigs.k8s.io/controller-runtime/pkg/cache/internal

@@ -38,7 +38,7 @@ require (
 	k8s.io/gengo v0.0.0-20210203185629-de9496dff47b
 	k8s.io/kube-openapi v0.0.0-20210323165736-1a6458611d18
 	k8s.io/utils v0.0.0-20210305010621-2afb4311ab10 // indirect
-	sigs.k8s.io/controller-runtime v0.7.0
+	sigs.k8s.io/controller-runtime v0.8.0
 	sigs.k8s.io/yaml v1.2.0
 )
 
@@ -63,7 +63,7 @@ require (
 	github.com/googleapis/gnostic v0.5.4 // indirect
 	github.com/leanovate/gopter v0.2.9
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/operator-framework/api v0.5.1
+	github.com/operator-framework/api v0.8.0
 	github.com/operator-framework/operator-lifecycle-manager v0.0.0-20200521062108-408ca95d458f // Tag 0.15.1
 	github.com/operator-framework/operator-sdk v0.19.4
 	github.com/prometheus/common v0.20.0 // indirect
