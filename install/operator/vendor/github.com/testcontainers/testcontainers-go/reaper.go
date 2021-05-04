@@ -8,6 +8,7 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"net"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -20,6 +21,9 @@ const (
 
 	ReaperDefaultImage = "quay.io/testcontainers/ryuk:0.2.3"
 )
+
+var reaper *Reaper // We would like to create reaper only once
+var mutex sync.Mutex
 
 // ReaperProvider represents a provider for the reaper to run itself with
 // The ContainerProvider interface should usually satisfy this as well, so it is pluggable
@@ -36,14 +40,21 @@ type Reaper struct {
 
 // NewReaper creates a Reaper with a sessionID to identify containers and a provider to use
 func NewReaper(ctx context.Context, sessionID string, provider ReaperProvider, reaperImageName string) (*Reaper, error) {
-	r := &Reaper{
+	mutex.Lock()
+	defer mutex.Unlock()
+	// If reaper already exists re-use it
+	if reaper != nil {
+		return reaper, nil
+	}
+
+	// Otherwise create a new one
+	reaper = &Reaper{
 		Provider:  provider,
 		SessionID: sessionID,
 	}
 
 	listeningPort := nat.Port("8080/tcp")
 
-	// TODO: reuse reaper if there already is one
 	req := ContainerRequest{
 		Image:        reaperImage(reaperImageName),
 		ExposedPorts: []string{string(listeningPort)},
@@ -59,6 +70,11 @@ func NewReaper(ctx context.Context, sessionID string, provider ReaperProvider, r
 		WaitingFor: wait.ForListeningPort(listeningPort),
 	}
 
+	// Attach reaper container to a requested network if it is specified
+	if p, ok := provider.(*DockerProvider); ok {
+		req.Networks = append(req.Networks, p.defaultNetwork)
+	}
+
 	c, err := provider.RunContainer(ctx, req)
 	if err != nil {
 		return nil, err
@@ -68,9 +84,9 @@ func NewReaper(ctx context.Context, sessionID string, provider ReaperProvider, r
 	if err != nil {
 		return nil, err
 	}
-	r.Endpoint = endpoint
+	reaper.Endpoint = endpoint
 
-	return r, nil
+	return reaper, nil
 }
 
 func reaperImage(reaperImageName string) string {

@@ -27,8 +27,8 @@ require (
 	github.com/spf13/cast v1.3.1
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.6.1
-	github.com/testcontainers/testcontainers-go v0.3.1
+	github.com/stretchr/testify v1.7.0
+	github.com/testcontainers/testcontainers-go v0.10.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.21.0
 	k8s.io/apiextensions-apiserver v0.20.5
@@ -59,7 +59,6 @@ require (
 	github.com/go-openapi/swag v0.19.15 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.4 // indirect
 	github.com/leanovate/gopter v0.2.9
 	github.com/mailru/easyjson v0.7.7 // indirect
