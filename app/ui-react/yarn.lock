@@ -193,12 +193,12 @@
   dependencies:
     tslib "^1.9.0"
 
-"@angular/forms@7.2.6":
-  version "7.2.6"
-  resolved "https://registry.yarnpkg.com/@angular/forms/-/forms-7.2.6.tgz#4db5238a5aa462927be29c90bc60ce4585ed939f"
-  integrity sha512-At72AJNGe+Zzmryb7DDIG+iws7zKdgZx/eEVjZ/Obu/yREefbZY4R7q83U90Vljtn97BwJPx9ur9ttxE9WpnlA==
+"@angular/forms@11.2.12":
+  version "11.2.12"
+  resolved "https://registry.yarnpkg.com/@angular/forms/-/forms-11.2.12.tgz#c361f7ced65c4bc0275c30ed078c3490b30bfb26"
+  integrity sha512-WHUY2jsgzrhhkUKNy4zmaNthf3KwhukSiJtKAcKhVaRdQmMphK3ZMZ2ArCjqVzkiJdnkgUGYgdpszrxNveA/hQ==
   dependencies:
-    tslib "^1.9.0"
+    tslib "^2.0.0"
 
 "@angular/language-service@7.2.6":
   version "7.2.6"
@@ -22704,6 +22704,11 @@ tslib@^1.10.0, tslib@^1.11.1, tslib@^1.8.0, tslib@^1.8.1, tslib@^1.9.0, tslib@^1
   version "1.11.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.11.1.tgz#eb15d128827fbee2841549e171f45ed338ac7e35"
   integrity sha512-aZW88SY8kQbU7gpV19lN24LtXh/yD4ZZg6qieAJDDg+YBsJcSmLGK9QpnUjAKVG/xefmvJGd1WUmfpT/g6AJGA==
+
+tslib@^2.0.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.2.0.tgz#fb2c475977e35e241311ede2693cee1ec6698f5c"
+  integrity sha512-gS9GVHRU+RGn5KQM2rllAlR3dU6m7AcpJKdtH8gFvQiC4Otgk98XnmMU+nZenHt/+VhnBPWwgrJsyrdcw6i23w==
 
 tslint-config-prettier@^1.16.0, tslint-config-prettier@^1.18.0:
   version "1.18.0"
