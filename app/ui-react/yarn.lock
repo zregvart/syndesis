@@ -12075,10 +12075,10 @@ humanize-url@^1.0.0:
     normalize-url "^1.0.0"
     strip-url-auth "^1.0.0"
 
-i18next-browser-languagedetector@^4.0.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/i18next-browser-languagedetector/-/i18next-browser-languagedetector-4.1.1.tgz#89656cd9b78bb92dc0c7e86c0d9606f3f15fabfa"
-  integrity sha512-akv0zurR/2KU7s1qaWkirY9FEEOT1TNsQaezEg8+1BLLQre7vylqb7tYoUgYqP/0/BEzXJgnoQnj+sh5xYFMhg==
+i18next-browser-languagedetector@^6.1.0:
+  version "6.1.0"
+  resolved "https://registry.yarnpkg.com/i18next-browser-languagedetector/-/i18next-browser-languagedetector-6.1.0.tgz#83d3a920d5f300424aa37bd4c0a09c267844de71"
+  integrity sha512-NXbr/qPqkg6VyUwPrzmVOAafqIk1zdjzhYVxZWoSi338XEGmuOeroEglLdR8nJUJcf5BfOSHva80tqCPwXFTFQ==
   dependencies:
     "@babel/runtime" "^7.5.5"
 
